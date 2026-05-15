@@ -4,7 +4,7 @@ import { colors } from '../../theme';
 import HalftonePattern from '../common/HalftonePattern';
 import Polaroid from '../Polaroid/Polaroid';
 import Thumbtack from '../Thumbtack/Thumbtack';
-import { mockShops } from '../../mocks/shops';
+import { useSplashShops } from '../../hooks/useSplashShops';
 
 // Proportional positions (0–1) derived from original 390×520 design canvas
 const PINS: { lx: number; ty: number; rot: number }[] = [
@@ -22,6 +22,7 @@ const TACK_SIZE = 12;
 
 export default function CorkBoard() {
   const [dims, setDims] = useState({ w: 390, h: 440 });
+  const shops = useSplashShops();
 
   const onLayout = (e: LayoutChangeEvent) => {
     const { width, height } = e.nativeEvent.layout;
@@ -46,7 +47,7 @@ export default function CorkBoard() {
           <View style={styles.tack}>
             <Thumbtack index={i} size={TACK_SIZE} />
           </View>
-          <Polaroid shop={mockShops[i % mockShops.length]} size="home" index={i} />
+          <Polaroid shop={shops[i % shops.length]} size="home" index={i} />
         </View>
       ))}
     </View>

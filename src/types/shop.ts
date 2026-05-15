@@ -9,4 +9,5 @@ export interface Shop {
   voteCount: number;
   createdAt: string;
   addedByUserId: string;
+  photoUrl?: string;
 }

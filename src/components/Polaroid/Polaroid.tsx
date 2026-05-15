@@ -1,46 +1,57 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts } from '../../theme';
 import HalftonePattern from '../common/HalftonePattern';
-import { Shop } from '../../types/shop';
+import { ShopDisplay } from '../../types/shopDisplay';
 
 interface PolaroidProps {
-  shop: Shop;
+  shop: ShopDisplay;
   size: 'home' | 'map';
   index: number;
   selected?: boolean;
+  onImageLoad?: () => void;
 }
 
 const CARD_BG = '#F8F7F3';
 
 // frame = white border around the photo (sides + top)
 // capH  = caption strip height (bottom, thicker — classic polaroid)
-const HOME = { w: 108, photoH: 76, frame: 7,  capH: 32, initialSize: 34, nameSize: 9  };
-const MAP  = { w: 62,  photoH: 42, frame: 4,  capH: 18, initialSize: 20, nameSize: 6.5 };
+const HOME = { w: 108, photoH: 76, frame: 7, capH: 32, initialSize: 34, nameSize: 9   };
+const MAP  = { w: 48,  photoH: 32, frame: 3, capH: 13, initialSize: 15, nameSize: 5.5 };
 
-export default function Polaroid({ shop, size, index, selected = false }: PolaroidProps) {
+export default function Polaroid({ shop, size, index, selected = false, onImageLoad }: PolaroidProps) {
   const d = size === 'home' ? HOME : MAP;
   const bg = colors.polPalette[index % colors.polPalette.length];
   const initial = shop.name.charAt(0).toUpperCase();
+  const isMap = size === 'map';
   const totalH = d.frame + d.photoH + d.capH;
+  // cardMap adds 1px border on all sides; border-box means top+bottom borders
+  // consume 2px of the specified height, so add them back to keep content correct
+  const cardH = totalH + (isMap ? 2 : 0);
 
   return (
     <View style={[
       styles.card,
+      isMap && styles.cardMap,
       {
         width: d.w,
-        height: totalH,
-        shadowColor: selected ? colors.pop : '#000',
-        shadowOpacity: selected ? 0.8 : 0.45,
-        shadowRadius: 22,
-        shadowOffset: { width: 3, height: 8 },
-        elevation: selected ? 12 : 6,
+        height: cardH,
+        shadowColor: '#000',
+        shadowOpacity: isMap ? 0.65 : (selected ? 0.8 : 0.45),
+        shadowRadius: isMap ? 6 : 22,
+        shadowOffset: isMap ? { width: 1, height: 3 } : { width: 3, height: 8 },
+        elevation: selected ? 12 : (isMap ? 8 : 6),
       },
     ]}>
       {/* White frame: top + sides */}
       <View style={{ paddingTop: d.frame, paddingHorizontal: d.frame }}>
         {/* Photo */}
         <View style={[styles.photo, { height: d.photoH, backgroundColor: bg }]}>
+          <Text style={[styles.initial, { fontSize: d.initialSize }]}>{initial}</Text>
+          {shop.photoUrl && (
+            <Image source={{ uri: shop.photoUrl }} style={StyleSheet.absoluteFill} resizeMode="cover" onLoad={onImageLoad} />
+          )}
+
           <HalftonePattern dotColor="rgba(255,255,255,0.13)" dotRadius={0.8} spacing={4} />
 
           <LinearGradient
@@ -60,8 +71,6 @@ export default function Polaroid({ shop, size, index, selected = false }: Polaro
               }}
             />
           ))}
-
-          <Text style={[styles.initial, { fontSize: d.initialSize }]}>{initial}</Text>
         </View>
       </View>
 
@@ -86,6 +95,10 @@ export default function Polaroid({ shop, size, index, selected = false }: Polaro
 const styles = StyleSheet.create({
   card: {
     backgroundColor: CARD_BG,
+  },
+  cardMap: {
+    borderWidth: 1,
+    borderColor: '#111111',
   },
   photo: {
     width: '100%',

@@ -2,7 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './types';
 import SplashScreen from '../screens/Onboarding/SplashScreen';
-import NichePickerScreen from '../screens/Onboarding/NichePickerScreen';
+import NichePickerScreen from '../screens/Niche/NichePickerScreen';
 import MapScreen from '../screens/Map/MapScreen';
 import ShopScreen from '../screens/Shop/ShopScreen';
 import RouteScreen from '../screens/Route/RouteScreen';

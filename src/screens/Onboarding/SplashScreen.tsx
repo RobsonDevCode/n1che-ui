@@ -1,88 +1,110 @@
-import { StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, fonts, spacing } from '../../theme';
 import CorkBoard from '../../components/CorkBoard/CorkBoard';
 import { RootNavigationProp } from '../../navigation/types';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { clearUser } from '../../store/slices/authSlice';
+import { signOut } from '../../services/auth/cognito';
+import Button from '../../components/common/Button';
+import InkHeader from '../../components/common/InkHeader';
+import Tagline from '../../components/common/Tagline';
+import HeaderTitle from '../../components/common/HeaderTitle';
 
 export default function SplashScreen() {
   const navigation = useNavigation<RootNavigationProp>();
+  const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector(s => s.auth.isAuthenticated);
+  const hasNiche = useAppSelector(s => !!s.niche.selectedNiche);
+
+  const handleSignOut = async () => {
+    await signOut();
+    dispatch(clearUser());
+  };
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   const titleSize = Math.round(width * 0.20);
   const watermarkSize = Math.round(height * 0.13);
   const headerHeight = Math.max(Math.round(height * 0.30) - insets.top, 170);
-  const year = new Date().getFullYear();
+  const year = new Date().getUTCFullYear();
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={[styles.header, { height: headerHeight }]}>
-        <Text
-          style={[styles.watermark, { fontSize: watermarkSize, lineHeight: watermarkSize, width }]}
-          numberOfLines={1}
-          pointerEvents="none"
-        >
-          NICHE
-        </Text>
-
-        <View style={styles.headerContent}>
-          <View style={styles.badgeRow}>
-            <View style={styles.issueBadge}>
-              <Text style={styles.issueText}>ISSUE №01</Text>
-            </View>
-            <Text style={styles.dateLine}>{year} · LONDON</Text>
-          </View>
-
-          <Text style={[styles.title, { fontSize: titleSize, lineHeight: titleSize * 1.1 }]}>
+    <View style={styles.screen}>
+      <InkHeader>
+        <View style={[styles.header, { height: headerHeight }]}>
+          <Text
+            style={[styles.watermark, { fontSize: watermarkSize, lineHeight: watermarkSize, width }]}
+            numberOfLines={1}
+            pointerEvents="none"
+          >
             NICHE
           </Text>
 
-          <Text style={styles.subtitle}>
-            Find the stores your{'\n'}people actually shop at.
-          </Text>
+          <View style={styles.headerContent}>
+            <View style={styles.badgeRow}>
+              <View style={styles.issueBadge}>
+                <Text style={styles.issueText}>ISSUE №01</Text>
+              </View>
+              <Text style={styles.dateLine}>{year} · LONDON</Text>
+            </View>
+
+            <HeaderTitle style={{ fontSize: titleSize, lineHeight: titleSize * 1.1, letterSpacing: 2 }}>
+              NICHE
+            </HeaderTitle>
+
+            <Tagline style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', marginTop: 8 }}>
+              Find the stores your{'\n'}people actually shop at.
+            </Tagline>
+          </View>
         </View>
-      </View>
+      </InkHeader>
 
       <View style={styles.separator} />
 
       <CorkBoard />
 
       <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-        <TouchableOpacity
-          style={styles.primaryBtn}
-          onPress={() => navigation.navigate('NichePicker')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.primaryBtnText}>Find Your Niche →</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.secondaryBtn}
-          onPress={() => navigation.navigate('Login')}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.secondaryBtnText}>Already have an account</Text>
-        </TouchableOpacity>
+        {isAuthenticated ? (
+          <>
+            <Button
+              variant="primary"
+              label={hasNiche ? 'Enter The Map →' : 'Find Your Niche →'}
+              onPress={() => navigation.navigate(hasNiche ? 'Map' : 'NichePicker')}
+              style={styles.btnNoMargin}
+            />
+            <Button variant="outline" label="Sign Out" onPress={handleSignOut} />
+          </>
+        ) : (
+          <>
+            <Button
+              variant="primary"
+              label="Log In →"
+              onPress={() => navigation.navigate('Login')}
+              style={styles.btnNoMargin}
+            />
+            <Button variant="outline" label="Create an account" onPress={() => navigation.navigate('SignUp')} />
+          </>
+        )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.paper,
   },
 
   header: {
-    backgroundColor: colors.ink,
     overflow: 'hidden',
     flexShrink: 0,
   },
   watermark: {
     position: 'absolute',
-    right: -15,
+    right: 5,
     top: 10,
     textAlign: 'right',
     fontFamily: fonts.bebas,
@@ -120,20 +142,6 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.4)',
     letterSpacing: 1.2,
   },
-  title: {
-    fontFamily: fonts.bebas,
-    color: colors.white,
-    letterSpacing: 2,
-  },
-  subtitle: {
-    fontFamily: fonts.fellItalic,
-    fontStyle: 'italic',
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.6)',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-
   separator: {
     height: 4,
     backgroundColor: colors.pop,
@@ -149,33 +157,5 @@ const styles = StyleSheet.create({
     gap: 8,
     flexShrink: 0,
   },
-  primaryBtn: {
-    width: '100%',
-    paddingVertical: 16,
-    backgroundColor: colors.pop,
-    alignItems: 'center',
-    transform: [{ rotate: '-0.3deg' }],
-  },
-  primaryBtnText: {
-    fontFamily: fonts.bebas,
-    fontSize: 20,
-    letterSpacing: 2.4,
-    color: colors.white,
-  },
-  secondaryBtn: {
-    width: '100%',
-    paddingVertical: 12,
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.ink,
-    alignItems: 'center',
-  },
-  secondaryBtnText: {
-    fontFamily: fonts.oswald,
-    fontWeight: '200',
-    fontSize: 13,
-    letterSpacing: 2,
-    color: colors.ink,
-    textTransform: 'uppercase',
-  },
+  btnNoMargin: { marginTop: 0, marginBottom: 0 },
 });
