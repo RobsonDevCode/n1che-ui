@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
 import { MockShop } from './mockShops';
@@ -28,12 +28,16 @@ export default function ShopList({ shops, nicheLabel, onSelectShop }: Props) {
           </Text>
         </View>
       ) : (
-        <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-          {shops.map((shop, i) => (
-            <ShopCard key={shop.id} shop={shop} index={i} onPress={() => onSelectShop(shop)} />
-          ))}
-          <View style={{ height: Math.max(insets.bottom, 16) }} />
-        </ScrollView>
+        <FlatList
+          style={styles.list}
+          data={shops}
+          keyExtractor={shop => shop.id}
+          renderItem={({ item, index }) => (
+            <ShopCard shop={item} index={index} onPress={() => onSelectShop(item)} />
+          )}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 16) }} />}
+        />
       )}
     </View>
   );
@@ -51,8 +55,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 7,
     backgroundColor: colors.white,
-    borderTopWidth: 3,
-    borderTopColor: colors.ink,
     borderBottomWidth: 2,
     borderBottomColor: colors.ink,
     flexShrink: 0,

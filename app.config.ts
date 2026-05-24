@@ -36,7 +36,6 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   plugins: [
     'expo-font',
-    '@sentry/react-native',
   ],
   extra: {
     apiBaseUrl:        process.env.API_BASE_URL,

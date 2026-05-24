@@ -21,21 +21,33 @@ import MapMarker from '../../components/MapMarker/MapMarker';
 import ShopPanel from './ShopPanel';
 import ShopList from './ShopList';
 
-const ZOOM_DELTA = { latitudeDelta: 0.004, longitudeDelta: 0.003 };
-const LIST_DELTA  = { latitudeDelta: 0.012, longitudeDelta: 0.008 };
+// Camera deltas (lat/lng span visible in the map viewport)
+const ZOOM_DELTA = { latitudeDelta: 0.004, longitudeDelta: 0.003 }; // tight zoom when a shop is selected
+const LIST_DELTA = { latitudeDelta: 0.02, longitudeDelta: 0.02 }; // neighbourhood zoom for the shop list
+const JUMP_LAT_DELTA = 0.06; // city-level latitude span after a place search (~9km)
+
+// Map height as fraction of screen height
+const MAP_HEIGHT_RATIO        = 0.45; // list mode
+const MAP_HEIGHT_DETAIL_RATIO = 0.28; // shop selected mode
+
+// Timings (ms)
+const MAP_ANIM_MS        = 300; // map height animation
+const REGION_DEBOUNCE_MS = 400; // delay before committing a panned region to state
+const SELECT_ANIM_MS     = 400; // camera animation when selecting / deselecting a shop
+const JUMP_ANIM_MS       = 600; // camera animation when jumping to a searched place
 
 export default function MapScreen() {
   const navigation = useNavigation<RootNavigationProp>();
-  const { height: screenH } = useWindowDimensions();
+  const { height: screenH, width: screenW } = useWindowDimensions();
 
   // ── Map height animation ───────────────────────────────────────────────────
-  const mapHeightFull   = Math.round(screenH * 0.45);
-  const mapHeightDetail = Math.round(screenH * 0.28);
+  const mapHeightFull   = Math.round(screenH * MAP_HEIGHT_RATIO);
+  const mapHeightDetail = Math.round(screenH * MAP_HEIGHT_DETAIL_RATIO);
   const mapHeightAnim   = useRef(new Animated.Value(mapHeightFull)).current;
   const mapRef          = useRef<MapView>(null);
 
   const animateMap = (toValue: number) =>
-    Animated.timing(mapHeightAnim, { toValue, duration: 300, useNativeDriver: false }).start();
+    Animated.timing(mapHeightAnim, { toValue, duration: MAP_ANIM_MS, useNativeDriver: false }).start();
 
   // ── Location & region ──────────────────────────────────────────────────────
   const { coords, label: locationLabel, loading: locationLoading } = useLocation();
@@ -45,6 +57,10 @@ export default function MapScreen() {
   const regionTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
+    return () => { clearTimeout(regionTimer.current); };
+  }, []);
+
+  useEffect(() => {
     if (coords && !hasSetInitialRegion.current) {
       hasSetInitialRegion.current = true;
       setMapRegion({ ...coords, ...LIST_DELTA });
@@ -52,14 +68,15 @@ export default function MapScreen() {
   }, [coords]);
 
   const handleRegionChangeComplete = (region: Region) => {
+    if (selectedPin) return;
     clearTimeout(regionTimer.current);
-    regionTimer.current = setTimeout(() => setMapRegion(region), 400);
+    regionTimer.current = setTimeout(() => setMapRegion(region), REGION_DEBOUNCE_MS);
   };
 
   const bounds = mapRegion ? {
-    swLat: mapRegion.latitude - mapRegion.latitudeDelta / 2,
+    swLat: mapRegion.latitude  - mapRegion.latitudeDelta  / 2,
     swLng: mapRegion.longitude - mapRegion.longitudeDelta / 2,
-    neLat: mapRegion.latitude + mapRegion.latitudeDelta / 2,
+    neLat: mapRegion.latitude  + mapRegion.latitudeDelta  / 2,
     neLng: mapRegion.longitude + mapRegion.longitudeDelta / 2,
   } : null;
 
@@ -72,7 +89,7 @@ export default function MapScreen() {
   const initialRegion  = coords ? { ...coords, ...LIST_DELTA } : fallbackRegion;
 
   // ── Search ─────────────────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery]       = useState('');
+  const [searchQuery, setSearchQuery]           = useState('');
   const [placeSuggestions, setPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
 
   const shopSuggestions = searchQuery.length > 1
@@ -84,7 +101,7 @@ export default function MapScreen() {
     if (searchQuery.length < 2) { setPlaceSuggestions([]); return; }
     const timer = setTimeout(async () => {
       setPlaceSuggestions(await autocomplete(searchQuery));
-    }, 300);
+    }, REGION_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -93,7 +110,13 @@ export default function MapScreen() {
     const results = await Location.geocodeAsync(query);
     if (!results.length) return;
     const { latitude, longitude } = results[0];
-    mapRef.current?.animateToRegion({ latitude, longitude, latitudeDelta: 0.08, longitudeDelta: 0.06 }, 600);
+    // Match longitudeDelta to the visible map area: compensate for latitude compression
+    // and the viewport's width-to-height ratio so the search circle covers the full displayed area.
+    const mapH = screenH * MAP_HEIGHT_RATIO;
+    const longitudeDelta = JUMP_LAT_DELTA / Math.cos(latitude * Math.PI / 180) * (screenW / mapH);
+    const newRegion = { latitude, longitude, latitudeDelta: JUMP_LAT_DELTA, longitudeDelta };
+    setMapRegion(newRegion);
+    mapRef.current?.animateToRegion(newRegion, JUMP_ANIM_MS);
     setSearchQuery('');
     setPlaceSuggestions([]);
   };
@@ -112,7 +135,7 @@ export default function MapScreen() {
     if (selectedPin === shop.id) { handleDeselect(); return; }
     setSelectedPin(shop.id);
     animateMap(mapHeightDetail);
-    mapRef.current?.animateToRegion({ latitude: shop.latitude, longitude: shop.longitude, ...ZOOM_DELTA }, 400);
+    mapRef.current?.animateToRegion({ latitude: shop.latitude, longitude: shop.longitude, ...ZOOM_DELTA }, SELECT_ANIM_MS);
   };
 
   const handleDeselect = () => {
@@ -122,7 +145,7 @@ export default function MapScreen() {
     if (center) {
       mapRef.current?.animateToRegion(
         { ...center, latitudeDelta: Math.max(center.latitudeDelta, LIST_DELTA.latitudeDelta), longitudeDelta: Math.max(center.longitudeDelta, LIST_DELTA.longitudeDelta) },
-        400,
+        SELECT_ANIM_MS,
       );
     }
   };
@@ -179,12 +202,15 @@ export default function MapScreen() {
               {shops.map((shop, i) => {
                 const isSelected = selectedPin === shop.id;
                 return (
+                  // Index key keeps native marker views alive across shop updates — prevents native bridge churn on every pan.
+                  // opacity hides non-selected markers without unmounting them for the same reason.
                   <Marker
-                    key={`${shop.id}-${isSelected}`}
+                    key={`marker-${i}`}
                     coordinate={{ latitude: shop.latitude, longitude: shop.longitude }}
                     onPress={() => handleShopSelect(shop)}
                     anchor={{ x: 0.5, y: 1 }}
                     tracksViewChanges={false}
+                    opacity={selectedPin && !isSelected ? 0 : 1}
                   >
                     <MapMarker shop={shop} index={i} selected={isSelected} />
                   </Marker>
