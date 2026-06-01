@@ -1,6 +1,6 @@
 export function parseAuthError(err: unknown): string {
   if (!(err instanceof Error)) return 'Something went wrong.';
-  switch ((err as any).name) {
+  switch (err.name) {
     case 'UserNotFoundException':       return 'Incorrect email or password.';
     case 'NotAuthorizedException':      return err.message.toLowerCase().includes('code')
       ? 'Invalid or expired code. Please try again or request a new one.'

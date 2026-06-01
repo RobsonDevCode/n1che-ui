@@ -1,4 +1,4 @@
-// TODO: replace with GET /shops/nearby?lat=&lng=&niche= from the API
+// TODO: replace with GET /shops/nearby?swLat=&swLng=&neLat=&neLng=&niche= from the API
 export interface MockShop {
   id: string;
   name: string;

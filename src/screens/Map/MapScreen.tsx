@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Keyboard, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
-import MapView, { Marker, Region, PROVIDER_GOOGLE } from 'react-native-maps';
+import MapView, { Marker, Polyline, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
 import { colors, fonts } from '../../theme';
@@ -20,21 +20,25 @@ import SearchDropdown, { PlaceSuggestion } from '../../components/common/SearchD
 import MapMarker from '../../components/MapMarker/MapMarker';
 import ShopPanel from './ShopPanel';
 import ShopList from './ShopList';
+import RoutePanel from './RoutePanel';
+import { useRoute } from '../../hooks/useRoute';
+import { RouteFilters } from '../../types/route';
 
 // Camera deltas (lat/lng span visible in the map viewport)
-const ZOOM_DELTA = { latitudeDelta: 0.004, longitudeDelta: 0.003 }; // tight zoom when a shop is selected
-const LIST_DELTA = { latitudeDelta: 0.02, longitudeDelta: 0.02 }; // neighbourhood zoom for the shop list
-const JUMP_LAT_DELTA = 0.06; // city-level latitude span after a place search (~9km)
+const ZOOM_DELTA     = { latitudeDelta: 0.004, longitudeDelta: 0.003 }; // tight zoom when a shop is selected
+const LIST_DELTA     = { latitudeDelta: 0.02,  longitudeDelta: 0.02  }; // neighbourhood zoom for the shop list
+const JUMP_LAT_DELTA = 0.06; // city-level latitude span after a place search (~6km)
 
 // Map height as fraction of screen height
 const MAP_HEIGHT_RATIO        = 0.45; // list mode
 const MAP_HEIGHT_DETAIL_RATIO = 0.28; // shop selected mode
 
 // Timings (ms)
-const MAP_ANIM_MS        = 300; // map height animation
-const REGION_DEBOUNCE_MS = 400; // delay before committing a panned region to state
-const SELECT_ANIM_MS     = 400; // camera animation when selecting / deselecting a shop
-const JUMP_ANIM_MS       = 600; // camera animation when jumping to a searched place
+const MAP_ANIM_MS             = 300; // map height animation
+const REGION_DEBOUNCE_MS      = 400; // delay before committing a panned region to state
+const AUTOCOMPLETE_DEBOUNCE_MS = 400; // delay before firing an autocomplete request
+const SELECT_ANIM_MS          = 400; // camera animation when selecting / deselecting a shop
+const JUMP_ANIM_MS            = 600; // camera animation when jumping to a searched place
 
 export default function MapScreen() {
   const navigation = useNavigation<RootNavigationProp>();
@@ -48,6 +52,9 @@ export default function MapScreen() {
 
   const animateMap = (toValue: number) =>
     Animated.timing(mapHeightAnim, { toValue, duration: MAP_ANIM_MS, useNativeDriver: false }).start();
+
+  // ── Selection (declared here so handleRegionChangeComplete can reference it) ─
+  const [selectedPin, setSelectedPin] = useState<string | null>(null);
 
   // ── Location & region ──────────────────────────────────────────────────────
   const { coords, label: locationLabel, loading: locationLoading } = useLocation();
@@ -68,7 +75,7 @@ export default function MapScreen() {
   }, [coords]);
 
   const handleRegionChangeComplete = (region: Region) => {
-    if (selectedPin) return;
+    if (selectedPin || isRouteMode) return;
     clearTimeout(regionTimer.current);
     regionTimer.current = setTimeout(() => setMapRegion(region), REGION_DEBOUNCE_MS);
   };
@@ -79,6 +86,28 @@ export default function MapScreen() {
     neLat: mapRegion.latitude  + mapRegion.latitudeDelta  / 2,
     neLng: mapRegion.longitude + mapRegion.longitudeDelta / 2,
   } : null;
+
+  // ── Route mode ────────────────────────────────────────────────────────────
+  const [isRouteMode, setIsRouteMode] = useState(false);
+  const { data: routeData, loading: routeLoading, findRoute, clearRoute } = useRoute();
+
+  const handleEnterRouteMode = () => {
+    if (selectedPin) {
+      setSelectedPin(null);
+      animateMap(mapHeightFull);
+    }
+    setIsRouteMode(true);
+    findRoute(shops, coords, { maxRouteTime: 120, openNow: true });
+  };
+
+  const handleExitRouteMode = () => {
+    setIsRouteMode(false);
+    clearRoute();
+  };
+
+  const handleRouteRefetch = (filters: RouteFilters) => {
+    findRoute(shops, coords, filters);
+  };
 
   // ── Shop data ──────────────────────────────────────────────────────────────
   const selectedNiche = useAppSelector(s => s.niche.selectedNiche);
@@ -101,7 +130,7 @@ export default function MapScreen() {
     if (searchQuery.length < 2) { setPlaceSuggestions([]); return; }
     const timer = setTimeout(async () => {
       setPlaceSuggestions(await autocomplete(searchQuery));
-    }, REGION_DEBOUNCE_MS);
+    }, AUTOCOMPLETE_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -127,8 +156,7 @@ export default function MapScreen() {
     setPlaceSuggestions([]);
   };
 
-  // ── Selection ──────────────────────────────────────────────────────────────
-  const [selectedPin, setSelectedPin] = useState<string | null>(null);
+  // ── Selection handlers ─────────────────────────────────────────────────────
   const selectedShop = shops.find(s => s.id === selectedPin) ?? null;
 
   const handleShopSelect = (shop: MockShop) => {
@@ -185,7 +213,7 @@ export default function MapScreen() {
       {/* Map */}
       <Animated.View style={[styles.mapWrap, { height: mapHeightAnim }]}>
         {locationLoading
-          ? <View style={[styles.mapPlaceholder, { top: 0, left: 0, right: 0, bottom: 0, position: 'absolute' }]} />
+          ? <View style={styles.mapPlaceholder} />
           : (
             <MapView
               ref={mapRef}
@@ -199,11 +227,10 @@ export default function MapScreen() {
               customMapStyle={mapStyle}
               onRegionChangeComplete={handleRegionChangeComplete}
             >
-              {shops.map((shop, i) => {
+              {/* Shop markers — hidden in route mode */}
+              {!isRouteMode && shops.map((shop, i) => {
                 const isSelected = selectedPin === shop.id;
                 return (
-                  // Index key keeps native marker views alive across shop updates — prevents native bridge churn on every pan.
-                  // opacity hides non-selected markers without unmounting them for the same reason.
                   <Marker
                     key={`marker-${i}`}
                     coordinate={{ latitude: shop.latitude, longitude: shop.longitude }}
@@ -216,6 +243,36 @@ export default function MapScreen() {
                   </Marker>
                 );
               })}
+
+              {/* Route polyline */}
+              {isRouteMode && routeData && (
+                <Polyline
+                  coordinates={[
+                    ...(routeData.mode === 'you' && coords
+                      ? [{ latitude: coords.latitude, longitude: coords.longitude }]
+                      : []),
+                    ...routeData.stops.map(s => ({ latitude: s.latitude, longitude: s.longitude })),
+                    ...(routeData.mode === 'loop' && routeData.stops.length > 0
+                      ? [{ latitude: routeData.stops[0].latitude, longitude: routeData.stops[0].longitude }]
+                      : []),
+                  ]}
+                  strokeColor={colors.ink}
+                  strokeWidth={2.5}
+                  lineDashPattern={[10, 6]}
+                />
+              )}
+
+              {/* Route stop markers */}
+              {isRouteMode && routeData && routeData.stops.map((stop, i) => (
+                <Marker
+                  key={`route-${stop.id}`}
+                  coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
+                  anchor={{ x: 0.5, y: 1 }}
+                  tracksViewChanges={false}
+                >
+                  <MapMarker shop={stop} index={i} selected={false} />
+                </Marker>
+              ))}
             </MapView>
           )
         }
@@ -225,15 +282,26 @@ export default function MapScreen() {
           <Text style={styles.locationText}>{locationLabel || 'Locating…'}</Text>
         </View>
 
-        <TouchableOpacity style={styles.routeBtn} onPress={() => navigation.navigate('Route')} activeOpacity={0.85}>
-          <Text style={styles.routeBtnText}>BEST ROUTE →</Text>
-        </TouchableOpacity>
+        {!isRouteMode && (
+          <TouchableOpacity style={styles.routeBtn} onPress={handleEnterRouteMode} activeOpacity={0.85}>
+            <Text style={styles.routeBtnText}>BEST ROUTE →</Text>
+          </TouchableOpacity>
+        )}
       </Animated.View>
 
       {/* Bottom panel */}
       {selectedShop
         ? <ShopPanel key={selectedShop.id} shop={selectedShop} onBack={handleDeselect} onDirections={handleDirections} />
-        : <ShopList shops={shops} nicheLabel={nicheLabel} onSelectShop={handleShopSelect} />
+        : isRouteMode
+          ? <RoutePanel
+              route={routeData}
+              loading={routeLoading}
+              initialMode="you"
+              onBeginRoute={() => { /* TODO: hand off to native maps navigation */ }}
+              onRefetch={handleRouteRefetch}
+              onExit={handleExitRouteMode}
+            />
+          : <ShopList shops={shops} nicheLabel={nicheLabel} onSelectShop={handleShopSelect} />
       }
     </View>
   );
@@ -270,12 +338,25 @@ const styles = StyleSheet.create({
   mapWrap: {
     width: '100%',
     flexShrink: 0,
-    overflow: 'hidden',
+  },
+  mapCornerBridge: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 10,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
   },
   mapFill: {
-    ...StyleSheet.absoluteFillObject,
+   position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: -32,
   },
   mapPlaceholder: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.paper2,
   },
   locationChip: {

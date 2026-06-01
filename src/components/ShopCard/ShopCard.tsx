@@ -1,6 +1,8 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, fonts } from '../../theme';
 import { MockShop } from '../../screens/Map/mockShops';
+import Title from '../common/Title';
+import Subtitle from '../common/Subtitle';
 
 interface Props {
   shop: MockShop;
@@ -21,9 +23,9 @@ export default function ShopCard({ shop, index, onPress }: Props) {
       activeOpacity={0.75}
     >
       <View style={[styles.rank, isFirst && styles.rankFirst]}>
-        <Text style={[styles.rankText, isFirst && styles.rankTextFirst]}>
+        <Title size={13} color={isFirst ? colors.white : colors.grey}>
           {String(index + 1).padStart(2, '0')}
-        </Text>
+        </Title>
       </View>
 
       <View style={styles.info}>
@@ -46,12 +48,12 @@ export default function ShopCard({ shop, index, onPress }: Props) {
       </View>
 
       <View style={styles.right}>
-        <Text style={styles.votes}>↑{shop.voteCount}</Text>
+        <Title size={15} color={colors.pop}>↑{shop.voteCount}</Title>
         <View style={styles.openRow}>
           <View style={[styles.dot, { backgroundColor: shop.isOpen ? colors.ink : colors.grey2 }]} />
-          <Text style={[styles.openText, { color: shop.isOpen ? colors.ink : colors.grey2 }]}>
+          <Subtitle size={8} color={shop.isOpen ? colors.ink : colors.grey2}>
             {shop.isOpen ? 'OPEN' : 'CLOSED'}
-          </Text>
+          </Subtitle>
         </View>
       </View>
     </TouchableOpacity>
@@ -82,14 +84,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.pop,
     borderColor: colors.pop,
   },
-  rankText: {
-    fontFamily: fonts.bebas,
-    fontSize: 13,
-    color: colors.grey,
-  },
-  rankTextFirst: {
-    color: colors.white,
-  },
 
   info: {
     flex: 1,
@@ -112,12 +106,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     gap: 3,
   },
-  votes: {
-    fontFamily: fonts.bebas,
-    fontSize: 15,
-    color: colors.pop,
-    letterSpacing: 0.5,
-  },
   openRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -126,10 +114,5 @@ const styles = StyleSheet.create({
   dot: {
     width: 5,
     height: 5,
-  },
-  openText: {
-    fontFamily: fonts.mono,
-    fontSize: 8,
-    letterSpacing: 1.5,
   },
 });

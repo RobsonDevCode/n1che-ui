@@ -45,7 +45,7 @@ export default function SearchDropdown({ shopResults, placeResults, onSelectShop
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: '100%' as any,
+    top: '100%',
     left: 0,
     right: 0,
     backgroundColor: colors.white,

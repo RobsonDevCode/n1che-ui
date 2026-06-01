@@ -46,8 +46,7 @@ function darken(hex: string, amt: number): string {
 const styles = StyleSheet.create({
   wrapper: {
     alignItems: 'center',
-    filter: undefined,
-  } as any,
+  },
   head: {
     borderWidth: 1,
     shadowColor: '#000',

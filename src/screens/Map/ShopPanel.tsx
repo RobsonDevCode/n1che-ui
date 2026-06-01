@@ -8,21 +8,17 @@ import { MockShop } from './mockShops';
 import { BookmarkIcon, DirectionsIcon } from '../../components/icons';
 import OpenBadge from '../../components/common/OpenBadge';
 import Button from '../../components/common/Button';
+import Title from '../../components/common/Title';
+import Subtitle from '../../components/common/Subtitle';
+import ReviewCard from '../../components/common/ReviewCard';
+import { Review } from '../../types/review';
 
 // TODO: replace with GET /shops/:id/reviews from the API
-const MOCK_REVIEWS = [
-  { id: '1', user: 'lucywears',   date: 'Mar 2026', text: 'Absolute gem. Found a perfect leather jacket for £35 — staff know their archive inside out.' },
-  { id: '2', user: 'thriftfiend', date: 'Feb 2026', text: 'Great selection, can get crowded on weekends. Worth the trip for the prices alone.' },
-  { id: '3', user: 'voidwalker',  date: 'Jan 2026', text: 'Asked about the provenance of a jacket and got a full history. This is what niche shopping is about.' },
+const MOCK_REVIEWS: Review[] = [
+  { id: '1', shopId: '*', user: 'lucywears',   date: 'Mar 2026', text: 'Absolute gem. Found a perfect leather jacket for £35 — staff know their archive inside out.' },
+  { id: '2', shopId: '*', user: 'thriftfiend', date: 'Feb 2026', text: 'Great selection, can get crowded on weekends. Worth the trip for the prices alone.' },
+  { id: '3', shopId: '*', user: 'voidwalker',  date: 'Jan 2026', text: 'Asked about the provenance of a jacket and got a full history. This is what niche shopping is about.' },
 ];
-
-interface Review {
-  id: string;
-  shopId: string;
-  user: string;
-  date: string;
-  text: string;
-}
 
 interface Props {
   shop: MockShop;
@@ -58,10 +54,11 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
   };
 
   return (
+    <View style={styles.panelShadow}>
     <View style={styles.panel}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7} style={styles.backBtn}>
-          <Text style={styles.backText}>← ALL SHOPS</Text>
+          <Subtitle color={colors.grey}>← ALL SHOPS</Subtitle>
         </TouchableOpacity>
         <OpenBadge isOpen={shop.isOpen} closingTime={shop.closingTime} />
       </View>
@@ -71,11 +68,11 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
         <View style={[styles.hero, { backgroundColor: colors.polPalette[shop.palIdx % colors.polPalette.length] }]}>
           {shop.photoUrl
             ? <Image source={{ uri: shop.photoUrl }} style={styles.heroImage} resizeMode="cover" />
-            : <Text style={styles.heroInitial}>{shop.name.charAt(0).toUpperCase()}</Text>
+            : <Title size={72} color="rgba(255,255,255,0.18)">{shop.name.charAt(0).toUpperCase()}</Title>
           }
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} style={styles.heroGradient} pointerEvents="none" />
           <View style={styles.heroInfo}>
-            <Text style={styles.shopName}>{shop.name.toUpperCase()}</Text>
+            <Title size={28} color={colors.white} style={styles.shopName}>{shop.name.toUpperCase()}</Title>
             <Text style={styles.shopAddr}>{shop.address} · {shop.distanceMi}</Text>
           </View>
         </View>
@@ -83,13 +80,13 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
         {/* Stats strip */}
         <View style={styles.statsStrip}>
           <View style={styles.statCell}>
-            <Text style={styles.statValue}>↑{shop.voteCount}</Text>
-            <Text style={styles.statLabel}>UPVOTES</Text>
+            <Title size={18} color={colors.ink}>↑{shop.voteCount}</Title>
+            <Subtitle size={7} color={colors.grey}>UPVOTES</Subtitle>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCell}>
-            <Text style={styles.statValue} numberOfLines={1}>@{shop.addedBy}</Text>
-            <Text style={styles.statLabel}>ADDED BY</Text>
+            <Title size={18} color={colors.ink} style={styles.statValueTruncate} numberOfLines={1}>@{shop.addedBy}</Title>
+            <Subtitle size={7} color={colors.grey}>ADDED BY</Subtitle>
           </View>
         </View>
 
@@ -113,18 +110,12 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
         {/* Reviews */}
         <View style={styles.reviewsSection}>
           <View style={styles.reviewsHeader}>
-            <Text style={styles.reviewsTitle}>COMMUNITY REVIEWS</Text>
-            <Text style={styles.reviewsCount}>({allReviews.length})</Text>
+            <Title size={16} color={colors.ink}>COMMUNITY REVIEWS</Title>
+            <Subtitle color={colors.grey} style={styles.reviewsCount}>({allReviews.length})</Subtitle>
           </View>
 
           {allReviews.map(r => (
-            <View key={r.id} style={styles.reviewCard}>
-              <View style={styles.reviewMeta}>
-                <Text style={styles.reviewUser}>@{r.user}</Text>
-                <Text style={styles.reviewDate}>{r.date}</Text>
-              </View>
-              <Text style={styles.reviewBody}>{r.text}</Text>
-            </View>
+            <ReviewCard key={r.id} review={r} />
           ))}
 
           {showReviewForm ? (
@@ -152,13 +143,27 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
         <View style={{ height: Math.max(insets.bottom, 16) }} />
       </ScrollView>
     </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  panelShadow: {
+    flex: 1,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 20,
+  },
   panel: {
     flex: 1,
     backgroundColor: colors.paper,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -167,19 +172,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: colors.white,
-    borderTopWidth: 3,
-    borderTopColor: colors.ink,
     borderBottomWidth: 2,
     borderBottomColor: colors.ink,
     flexShrink: 0,
   },
   backBtn: { padding: 2 },
-  backText: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: colors.grey,
-  },
   scroll: { flex: 1 },
 
   hero: {
@@ -194,11 +191,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
   },
-  heroInitial: {
-    fontFamily: fonts.bebas,
-    fontSize: 72,
-    color: 'rgba(255,255,255,0.18)',
-  },
   heroGradient: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
@@ -210,13 +202,7 @@ const styles = StyleSheet.create({
     right: 0,
     padding: 14,
   },
-  shopName: {
-    fontFamily: fonts.bebas,
-    fontSize: 28,
-    color: colors.white,
-    letterSpacing: 1,
-    lineHeight: 30,
-  },
+  shopName: { lineHeight: 30 },
   shopAddr: {
     fontFamily: fonts.special,
     fontSize: 12,
@@ -241,18 +227,7 @@ const styles = StyleSheet.create({
     width: 2,
     backgroundColor: colors.ink,
   },
-  statValue: {
-    fontFamily: fonts.bebas,
-    fontSize: 18,
-    color: colors.ink,
-    letterSpacing: 0.5,
-  },
-  statLabel: {
-    fontFamily: fonts.mono,
-    fontSize: 7,
-    letterSpacing: 1.5,
-    color: colors.grey,
-  },
+  statValueTruncate: { maxWidth: '100%' },
 
   actions: {
     flexDirection: 'row',
@@ -277,49 +252,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.grey2,
   },
-  reviewsTitle: {
-    fontFamily: fonts.bebas,
-    fontSize: 16,
-    letterSpacing: 1.5,
-    color: colors.ink,
-  },
-  reviewsCount: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1,
-    color: colors.grey,
-  },
-  reviewCard: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.grey2,
-    gap: 6,
-  },
-  reviewMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  reviewUser: {
-    fontFamily: fonts.bebas,
-    fontSize: 13,
-    letterSpacing: 0.5,
-    color: colors.ink,
-    flex: 1,
-  },
-  reviewDate: {
-    fontFamily: fonts.mono,
-    fontSize: 8,
-    letterSpacing: 1,
-    color: colors.grey,
-  },
-  reviewBody: {
-    fontFamily: fonts.special,
-    fontSize: 12,
-    color: colors.ink2,
-    lineHeight: 18,
-  },
+  reviewsCount: { letterSpacing: 1 },
   writeReviewBtn: { margin: 14 },
   reviewForm: {
     padding: 14,

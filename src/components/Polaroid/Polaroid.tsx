@@ -66,7 +66,7 @@ export default function Polaroid({ shop, size, index, selected = false, onImageL
               pointerEvents="none"
               style={{
                 position: 'absolute', left: 0, right: 0,
-                top: `${Math.round((i / arr.length) * 100)}%` as any,
+                top: `${Math.round((i / arr.length) * 100)}%`,
                 height: 1, backgroundColor: 'rgba(255,255,255,0.07)', zIndex: 4,
               }}
             />

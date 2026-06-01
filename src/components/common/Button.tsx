@@ -5,7 +5,7 @@ interface Props {
   onPress: () => void;
   label?: string;
   children?: React.ReactNode;
-  variant?: 'outline' | 'primary' | 'ghost' | 'action' | 'link';
+  variant?: 'outline' | 'primary' | 'ghost' | 'action' | 'link' | 'chip' | 'paper' | 'icon' | 'cta';
   active?: boolean;
   disabled?: boolean;
   loading?: boolean;
@@ -32,6 +32,10 @@ export default function Button({
     ghost:   styles.ghost,
     action:  active ? styles.actionActive : styles.action,
     link:    styles.link,
+    chip:    active ? styles.chipActive : styles.chip,
+    paper:   styles.paper,
+    icon:    styles.icon,
+    cta:     styles.cta,
   }[variant];
 
   const textStyle = {
@@ -40,10 +44,14 @@ export default function Button({
     ghost:   styles.ghostText,
     action:  active ? styles.actionTextActive : styles.actionText,
     link:    styles.linkText,
+    chip:    active ? styles.chipTextActive : styles.chipText,
+    paper:   styles.paperText,
+    icon:    styles.iconText,
+    cta:     styles.ctaText,
   }[variant];
 
   const indicatorColor =
-    variant === 'primary' || variant === 'ghost' || (variant === 'action' && active)
+    variant === 'primary' || variant === 'ghost' || (variant === 'action' && active) || (variant === 'chip' && active)
       ? colors.white
       : colors.ink;
 
@@ -151,5 +159,75 @@ const styles = StyleSheet.create({
     fontFamily: fonts.special,
     fontSize: 13,
     color: colors.ink2,
+  },
+
+  paper: {
+    backgroundColor: colors.paper,
+    paddingVertical: 11,
+    alignItems: 'center' as const,
+  },
+  paperText: {
+    fontFamily: fonts.bebas,
+    fontSize: 16,
+    letterSpacing: 2,
+    color: colors.ink,
+  },
+
+  chip: {
+    borderWidth: 2,
+    borderColor: colors.ink,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+  },
+  chipActive: {
+    borderWidth: 2,
+    borderColor: colors.ink,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+  },
+  chipText: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: colors.ink,
+  },
+  chipTextActive: {
+    fontFamily: fonts.mono,
+    fontSize: 10,
+    letterSpacing: 1,
+    color: colors.white,
+  },
+
+  icon: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 1,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconText: {
+    fontFamily: fonts.mono,
+    fontSize: 13,
+    color: colors.ink,
+  },
+
+  cta: {
+    borderRadius: 13,
+    backgroundColor: colors.paper,
+    paddingVertical: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaText: {
+    fontFamily: fonts.bebas,
+    fontSize: 20,
+    letterSpacing: 2.5,
+    color: colors.ink,
   },
 });

@@ -3,6 +3,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
 import { MockShop } from './mockShops';
 import ShopCard from '../../components/ShopCard/ShopCard';
+import Title from '../../components/common/Title';
+import Subtitle from '../../components/common/Subtitle';
 
 interface Props {
   shops: MockShop[];
@@ -14,39 +16,54 @@ export default function ShopList({ shops, nicheLabel, onSelectShop }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.wrap}>
-      <View style={styles.header}>
-        <Text style={styles.count}>{shops.length} SHOPS NEARBY</Text>
-        <Text style={styles.sort}>TOP RATED ↓</Text>
-      </View>
-
-      {shops.length === 0 ? (
-        <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>NO SHOPS NEARBY</Text>
-          <Text style={styles.emptyText}>
-            We don't have any {nicheLabel.toLowerCase()} shops in your area yet.{'\n'}Try searching for a location above.
-          </Text>
+    <View style={styles.panelShadow}>
+      <View style={styles.wrap}>
+        <View style={styles.header}>
+          <Title size={15} color={colors.ink}>{shops.length} SHOPS NEARBY</Title>
+          <Subtitle color={colors.grey}>TOP RATED ↓</Subtitle>
         </View>
-      ) : (
-        <FlatList
-          style={styles.list}
-          data={shops}
-          keyExtractor={shop => shop.id}
-          renderItem={({ item, index }) => (
-            <ShopCard shop={item} index={index} onPress={() => onSelectShop(item)} />
-          )}
-          showsVerticalScrollIndicator={false}
-          ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 16) }} />}
-        />
-      )}
+
+        {shops.length === 0 ? (
+          <View style={styles.empty}>
+            <Title size={22} color={colors.ink}>NO SHOPS NEARBY</Title>
+            <Text style={styles.emptyText}>
+              We don't have any {nicheLabel.toLowerCase()} shops in your area yet.{'\n'}Try searching for a location above.
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            style={styles.list}
+            data={shops}
+            keyExtractor={shop => shop.id}
+            renderItem={({ item, index }) => (
+              <ShopCard shop={item} index={index} onPress={() => onSelectShop(item)} />
+            )}
+            showsVerticalScrollIndicator={false}
+            ListFooterComponent={<View style={{ height: Math.max(insets.bottom, 16) }} />}
+          />
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  panelShadow: {
+    flex: 1,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 20,
+  },
   wrap: {
     flex: 1,
     backgroundColor: colors.paper,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
@@ -59,18 +76,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.ink,
     flexShrink: 0,
   },
-  count: {
-    fontFamily: fonts.bebas,
-    fontSize: 15,
-    letterSpacing: 1,
-    color: colors.ink,
-  },
-  sort: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 1.5,
-    color: colors.grey,
-  },
   list: { flex: 1 },
   empty: {
     flex: 1,
@@ -78,12 +83,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 32,
     gap: 10,
-  },
-  emptyTitle: {
-    fontFamily: fonts.bebas,
-    fontSize: 22,
-    letterSpacing: 1.5,
-    color: colors.ink,
   },
   emptyText: {
     fontFamily: fonts.special,

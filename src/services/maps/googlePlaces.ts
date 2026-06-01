@@ -34,6 +34,19 @@ export interface PlaceSuggestion {
   placeId: string;
 }
 
+interface RawPlace {
+  id: string;
+  displayName?: { text?: string };
+  shortFormattedAddress?: string;
+  location?: { latitude?: number; longitude?: number };
+  photos?: Array<{ name: string }>;
+}
+
+interface RawPrediction {
+  description: string;
+  place_id: string;
+}
+
 // searchNearby uses a circle (the only shape Places API v1 supports for this endpoint).
 // We derive the enclosing circle from the bounding box so the caller can always think in
 // viewport coords — and the backend will receive the real rectangle once live.
@@ -63,7 +76,7 @@ export async function searchNearby(box: BoundingBox, count: number): Promise<Pla
     },
   );
 
-  return (data.places ?? []).map((p: any): PlaceResult => ({
+  return (data.places ?? []).map((p: RawPlace): PlaceResult => ({
     id: p.id,
     name: p.displayName?.text ?? p.id,
     address: p.shortFormattedAddress ?? '',
@@ -82,7 +95,7 @@ export async function autocomplete(query: string): Promise<PlaceSuggestion[]> {
   const res  = await fetch(url);
   const json = await res.json();
   if (json.status !== 'OK') return [];
-  return json.predictions.map((p: any): PlaceSuggestion => ({
+  return json.predictions.map((p: RawPrediction): PlaceSuggestion => ({
     description: p.description,
     placeId: p.place_id,
   }));
