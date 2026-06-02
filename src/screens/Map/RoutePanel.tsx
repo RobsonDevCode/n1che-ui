@@ -1,9 +1,10 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts } from '../../theme';
 import Button from '../../components/common/Button';
+import Panel from '../../components/common/Panel';
 import Title from '../../components/common/Title';
 import Subtitle from '../../components/common/Subtitle';
-import { RouteFilters, RouteResponse } from '../../types/route';
+import { RouteResponse } from '../../types/route';
 
 // ── Props ─────────────────────────────────────────────────────────────────
 
@@ -12,7 +13,6 @@ interface Props {
   loading: boolean;
   initialMode: 'you' | 'loop';
   onBeginRoute: () => void;
-  onRefetch: (filters: RouteFilters) => void;
   onExit: () => void;
 }
 
@@ -23,7 +23,7 @@ export default function RoutePanel({ route, loading, initialMode, onBeginRoute, 
   const stops = route?.stops ?? [];
 
   return (
-    <View style={styles.sheet}>
+    <Panel variant="ink" style={styles.panelInner}>
 
       {/* Title row */}
       <View style={styles.titleRow}>
@@ -66,25 +66,15 @@ export default function RoutePanel({ route, loading, initialMode, onBeginRoute, 
       {/* BEGIN ROUTE */}
       <Button variant="cta" label="BEGIN ROUTE →" onPress={onBeginRoute} style={styles.beginBtn} />
 
-    </View>
+    </Panel>
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  sheet: {
-    flex: 1,
-    backgroundColor: colors.ink,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    overflow: 'hidden',
+  panelInner: {
     paddingBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 20,
   },
 
   titleRow: {

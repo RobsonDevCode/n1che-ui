@@ -8,6 +8,7 @@ import { MockShop } from './mockShops';
 import { BookmarkIcon, DirectionsIcon } from '../../components/icons';
 import OpenBadge from '../../components/common/OpenBadge';
 import Button from '../../components/common/Button';
+import Panel from '../../components/common/Panel';
 import Title from '../../components/common/Title';
 import Subtitle from '../../components/common/Subtitle';
 import ReviewCard from '../../components/common/ReviewCard';
@@ -54,8 +55,7 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
   };
 
   return (
-    <View style={styles.panelShadow}>
-    <View style={styles.panel}>
+    <Panel variant="paper">
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} activeOpacity={0.7} style={styles.backBtn}>
           <Subtitle color={colors.grey}>← ALL SHOPS</Subtitle>
@@ -142,29 +142,11 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
 
         <View style={{ height: Math.max(insets.bottom, 16) }} />
       </ScrollView>
-    </View>
-    </View>
+    </Panel>
   );
 }
 
 const styles = StyleSheet.create({
-  panelShadow: {
-    flex: 1,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -10 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 20,
-  },
-  panel: {
-    flex: 1,
-    backgroundColor: colors.paper,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    overflow: 'hidden',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -28,6 +28,7 @@ export interface RouteStop {
 export interface RouteResponse {
   id: string;
   name: string;
+  tag: string;        // e.g. "TOP RATED", "UNDER 1H", "LOOP"
   stops: RouteStop[];
   estimatedRouteTime: string; // "1h 35m"
   totalDistanceStr: string;   // "1.4 mi"

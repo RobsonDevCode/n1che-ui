@@ -1,4 +1,4 @@
-import { StyleSheet, TextInput, TouchableOpacity, View, Text } from 'react-native';
+import { StyleSheet, TextInput, View, Text } from 'react-native';
 import { colors, fonts } from '../../theme';
 
 interface SearchBarProps {
@@ -6,10 +6,9 @@ interface SearchBarProps {
   value: string;
   onChangeText: (text: string) => void;
   onSubmit: (text: string) => void;
-  onFilterPress?: () => void;
 }
 
-export default function SearchBar({ placeholder, value, onChangeText, onSubmit, onFilterPress }: SearchBarProps) {
+export default function SearchBar({ placeholder, value, onChangeText, onSubmit }: SearchBarProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.icon}>⌕</Text>
@@ -24,10 +23,6 @@ export default function SearchBar({ placeholder, value, onChangeText, onSubmit, 
         autoCorrect={false}
         autoCapitalize="none"
       />
-      <View style={styles.divider} />
-      <TouchableOpacity onPress={onFilterPress} activeOpacity={0.7}>
-        <Text style={styles.filter}>FILTER</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -55,16 +50,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: colors.ink,
     padding: 0,
-  },
-  divider: {
-    width: 2,
-    height: 16,
-    backgroundColor: colors.grey2,
-  },
-  filter: {
-    fontFamily: fonts.mono,
-    fontSize: 9,
-    letterSpacing: 2,
-    color: colors.grey,
   },
 });

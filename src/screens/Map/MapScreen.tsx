@@ -21,8 +21,8 @@ import MapMarker from '../../components/MapMarker/MapMarker';
 import ShopPanel from './ShopPanel';
 import ShopList from './ShopList';
 import RoutePanel from './RoutePanel';
+import RoutePickerPanel from './RoutePickerPanel';
 import { useRoute } from '../../hooks/useRoute';
-import { RouteFilters } from '../../types/route';
 
 // Camera deltas (lat/lng span visible in the map viewport)
 const ZOOM_DELTA     = { latitudeDelta: 0.004, longitudeDelta: 0.003 }; // tight zoom when a shop is selected
@@ -34,11 +34,11 @@ const MAP_HEIGHT_RATIO        = 0.45; // list mode
 const MAP_HEIGHT_DETAIL_RATIO = 0.28; // shop selected mode
 
 // Timings (ms)
-const MAP_ANIM_MS             = 300; // map height animation
-const REGION_DEBOUNCE_MS      = 400; // delay before committing a panned region to state
-const AUTOCOMPLETE_DEBOUNCE_MS = 400; // delay before firing an autocomplete request
-const SELECT_ANIM_MS          = 400; // camera animation when selecting / deselecting a shop
-const JUMP_ANIM_MS            = 600; // camera animation when jumping to a searched place
+const MAP_ANIM_MS              = 300;
+const REGION_DEBOUNCE_MS       = 400;
+const AUTOCOMPLETE_DEBOUNCE_MS = 400;
+const SELECT_ANIM_MS           = 400;
+const JUMP_ANIM_MS             = 600;
 
 export default function MapScreen() {
   const navigation = useNavigation<RootNavigationProp>();
@@ -53,7 +53,7 @@ export default function MapScreen() {
   const animateMap = (toValue: number) =>
     Animated.timing(mapHeightAnim, { toValue, duration: MAP_ANIM_MS, useNativeDriver: false }).start();
 
-  // ── Selection (declared here so handleRegionChangeComplete can reference it) ─
+  // ── Selection ──────────────────────────────────────────────────────────────
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
 
   // ── Location & region ──────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ export default function MapScreen() {
   }, [coords]);
 
   const handleRegionChangeComplete = (region: Region) => {
-    if (selectedPin || isRouteMode) return;
+    if (selectedPin || isRoutePickerMode || isRouteMode) return;
     clearTimeout(regionTimer.current);
     regionTimer.current = setTimeout(() => setMapRegion(region), REGION_DEBOUNCE_MS);
   };
@@ -87,17 +87,36 @@ export default function MapScreen() {
     neLng: mapRegion.longitude + mapRegion.longitudeDelta / 2,
   } : null;
 
-  // ── Route mode ────────────────────────────────────────────────────────────
-  const [isRouteMode, setIsRouteMode] = useState(false);
-  const { data: routeData, loading: routeLoading, findRoute, clearRoute } = useRoute();
+  // ── Route state ────────────────────────────────────────────────────────────
+  const [isRoutePickerMode, setIsRoutePickerMode] = useState(false);
+  const [pickerSelectedId,  setPickerSelectedId]  = useState<string | null>(null);
+  const [isRouteMode,       setIsRouteMode]        = useState(false);
 
-  const handleEnterRouteMode = () => {
+  const { suggestions, data: routeData, loading: routeLoading, findSuggestions, beginRoute, clearRoute } = useRoute();
+
+  const handleEnterRoutePicker = () => {
     if (selectedPin) {
       setSelectedPin(null);
       animateMap(mapHeightFull);
     }
+    setIsRoutePickerMode(true);
+    setPickerSelectedId(null);
+    findSuggestions(shops, coords, bounds);
+  };
+
+  const handleExitRoutePicker = () => {
+    setIsRoutePickerMode(false);
+    setPickerSelectedId(null);
+    clearRoute();
+  };
+
+  const handleBeginRoute = () => {
+    const selected = suggestions.find(r => r.id === pickerSelectedId);
+    if (!selected) return;
+    beginRoute(selected);
+    setIsRoutePickerMode(false);
+    setPickerSelectedId(null);
     setIsRouteMode(true);
-    findRoute(shops, coords, { maxRouteTime: 120, openNow: true });
   };
 
   const handleExitRouteMode = () => {
@@ -105,9 +124,8 @@ export default function MapScreen() {
     clearRoute();
   };
 
-  const handleRouteRefetch = (filters: RouteFilters) => {
-    findRoute(shops, coords, filters);
-  };
+  // TODO: wire up search filtering when backend API is complete
+  const handleRouteSearch = (_query: string) => {};
 
   // ── Shop data ──────────────────────────────────────────────────────────────
   const selectedNiche = useAppSelector(s => s.niche.selectedNiche);
@@ -118,8 +136,8 @@ export default function MapScreen() {
   const initialRegion  = coords ? { ...coords, ...LIST_DELTA } : fallbackRegion;
 
   // ── Search ─────────────────────────────────────────────────────────────────
-  const [searchQuery, setSearchQuery]           = useState('');
-  const [placeSuggestions, setPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
+  const [searchQuery,       setSearchQuery]       = useState('');
+  const [placeSuggestions,  setPlaceSuggestions]  = useState<PlaceSuggestion[]>([]);
 
   const shopSuggestions = searchQuery.length > 1
     ? shops.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -139,8 +157,6 @@ export default function MapScreen() {
     const results = await Location.geocodeAsync(query);
     if (!results.length) return;
     const { latitude, longitude } = results[0];
-    // Match longitudeDelta to the visible map area: compensate for latitude compression
-    // and the viewport's width-to-height ratio so the search circle covers the full displayed area.
     const mapH = screenH * MAP_HEIGHT_RATIO;
     const longitudeDelta = JUMP_LAT_DELTA / Math.cos(latitude * Math.PI / 180) * (screenW / mapH);
     const newRegion = { latitude, longitude, latitudeDelta: JUMP_LAT_DELTA, longitudeDelta };
@@ -180,6 +196,11 @@ export default function MapScreen() {
 
   // TODO: replace with in-app Google Directions API route renderer
   const handleDirections = (_shop: MockShop) => {};
+
+  // ── Picker route preview (drives polyline while picker is open) ────────────
+  const pickerPreviewRoute = isRoutePickerMode && suggestions.length > 0
+    ? (suggestions.find(r => r.id === pickerSelectedId) ?? suggestions[0])
+    : null;
 
   return (
     <View style={styles.screen}>
@@ -227,8 +248,8 @@ export default function MapScreen() {
               customMapStyle={mapStyle}
               onRegionChangeComplete={handleRegionChangeComplete}
             >
-              {/* Shop markers — hidden in route mode */}
-              {!isRouteMode && shops.map((shop, i) => {
+              {/* Shop markers — hidden in route/picker mode */}
+              {!isRouteMode && !isRoutePickerMode && shops.map((shop, i) => {
                 const isSelected = selectedPin === shop.id;
                 return (
                   <Marker
@@ -244,7 +265,7 @@ export default function MapScreen() {
                 );
               })}
 
-              {/* Route polyline */}
+              {/* Active route polyline */}
               {isRouteMode && routeData && (
                 <Polyline
                   coordinates={[
@@ -258,14 +279,42 @@ export default function MapScreen() {
                   ]}
                   strokeColor={colors.ink}
                   strokeWidth={2.5}
-                  lineDashPattern={[10, 6]}
                 />
               )}
 
-              {/* Route stop markers */}
+              {/* Active route stop markers */}
               {isRouteMode && routeData && routeData.stops.map((stop, i) => (
                 <Marker
                   key={`route-${stop.id}`}
+                  coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
+                  anchor={{ x: 0.5, y: 1 }}
+                  tracksViewChanges={false}
+                >
+                  <MapMarker shop={stop} index={i} selected={false} />
+                </Marker>
+              ))}
+
+              {/* Picker preview polyline — updates as the user taps route cards */}
+              {pickerPreviewRoute && (
+                <Polyline
+                  coordinates={[
+                    ...(pickerPreviewRoute.mode === 'you' && coords
+                      ? [{ latitude: coords.latitude, longitude: coords.longitude }]
+                      : []),
+                    ...pickerPreviewRoute.stops.map(s => ({ latitude: s.latitude, longitude: s.longitude })),
+                    ...(pickerPreviewRoute.mode === 'loop' && pickerPreviewRoute.stops.length > 0
+                      ? [{ latitude: pickerPreviewRoute.stops[0].latitude, longitude: pickerPreviewRoute.stops[0].longitude }]
+                      : []),
+                  ]}
+                  strokeColor={colors.ink}
+                  strokeWidth={2.5}
+                />
+              )}
+
+              {/* Picker preview stop markers */}
+              {pickerPreviewRoute && pickerPreviewRoute.stops.map((stop, i) => (
+                <Marker
+                  key={`picker-${stop.id}`}
                   coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
                   anchor={{ x: 0.5, y: 1 }}
                   tracksViewChanges={false}
@@ -282,9 +331,9 @@ export default function MapScreen() {
           <Text style={styles.locationText}>{locationLabel || 'Locating…'}</Text>
         </View>
 
-        {!isRouteMode && (
-          <TouchableOpacity style={styles.routeBtn} onPress={handleEnterRouteMode} activeOpacity={0.85}>
-            <Text style={styles.routeBtnText}>BEST ROUTE →</Text>
+        {!isRouteMode && !isRoutePickerMode && (
+          <TouchableOpacity style={styles.routeBtn} onPress={handleEnterRoutePicker} activeOpacity={0.85}>
+            <Text style={styles.routeBtnText}>FIND ROUTES →</Text>
           </TouchableOpacity>
         )}
       </Animated.View>
@@ -292,16 +341,25 @@ export default function MapScreen() {
       {/* Bottom panel */}
       {selectedShop
         ? <ShopPanel key={selectedShop.id} shop={selectedShop} onBack={handleDeselect} onDirections={handleDirections} />
-        : isRouteMode
-          ? <RoutePanel
-              route={routeData}
+        : isRoutePickerMode
+          ? <RoutePickerPanel
+              routes={suggestions}
               loading={routeLoading}
-              initialMode="you"
-              onBeginRoute={() => { /* TODO: hand off to native maps navigation */ }}
-              onRefetch={handleRouteRefetch}
-              onExit={handleExitRouteMode}
+              selectedId={pickerSelectedId}
+              onSelect={setPickerSelectedId}
+              onBegin={handleBeginRoute}
+              onClose={handleExitRoutePicker}
+              onSearch={handleRouteSearch}
             />
-          : <ShopList shops={shops} nicheLabel={nicheLabel} onSelectShop={handleShopSelect} />
+          : isRouteMode
+            ? <RoutePanel
+                route={routeData}
+                loading={routeLoading}
+                initialMode="you"
+                onBeginRoute={() => { /* TODO: hand off to native maps navigation */ }}
+                onExit={handleExitRouteMode}
+              />
+            : <ShopList shops={shops} nicheLabel={nicheLabel} onSelectShop={handleShopSelect} />
       }
     </View>
   );
@@ -349,7 +407,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 26,
   },
   mapFill: {
-   position: 'absolute',
+    position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
