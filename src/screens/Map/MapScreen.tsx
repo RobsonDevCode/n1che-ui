@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Keyboard, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import MapView, { Marker, Polyline, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
@@ -22,41 +22,45 @@ import ShopPanel from './ShopPanel';
 import ShopList from './ShopList';
 import RoutePanel from './RoutePanel';
 import RoutePickerPanel from './RoutePickerPanel';
-import { useRoute } from '../../hooks/useRoute';
+import NavigationPrompt from '../../components/NavigationPrompt/NavigationPrompt';
+import Button from '../../components/common/Button';
+import { useRoute, buildDirectRoute } from '../../hooks/useRoute';
+import { useNavigationSession } from '../../hooks/useNavigationSession';
+import { NavPositionUpdate, NavState } from '../../types/navigation';
+import { computeBearing, offsetPosition } from '../../utils/geo';
+import { NAV_ZOOM, NAV_PITCH, NAV_FOLLOW_OFFSET_M, HEADING_SMOOTH_ALPHA, BEARING_MIN_DIST_M } from '../../constants/navigation';
 
-// Camera deltas (lat/lng span visible in the map viewport)
-const ZOOM_DELTA     = { latitudeDelta: 0.004, longitudeDelta: 0.003 }; // tight zoom when a shop is selected
-const LIST_DELTA     = { latitudeDelta: 0.02,  longitudeDelta: 0.02  }; // neighbourhood zoom for the shop list
-const JUMP_LAT_DELTA = 0.06; // city-level latitude span after a place search (~6km)
+const ZOOM_DELTA     = { latitudeDelta: 0.004, longitudeDelta: 0.003 };
+const LIST_DELTA     = { latitudeDelta: 0.02,  longitudeDelta: 0.02  };
+const JUMP_LAT_DELTA = 0.06;
 
-// Map height as fraction of screen height
-const MAP_HEIGHT_RATIO        = 0.45; // list mode
-const MAP_HEIGHT_DETAIL_RATIO = 0.28; // shop selected mode
+const MAP_HEIGHT_RATIO        = 0.45;
+const MAP_HEIGHT_DETAIL_RATIO = 0.28;
+const MAP_HEIGHT_NAV_RATIO    = 0.55;
 
-// Timings (ms)
 const MAP_ANIM_MS              = 300;
 const REGION_DEBOUNCE_MS       = 400;
 const AUTOCOMPLETE_DEBOUNCE_MS = 400;
 const SELECT_ANIM_MS           = 400;
 const JUMP_ANIM_MS             = 600;
+const RECENTER_ANIM_MS         = 600;
+
 
 export default function MapScreen() {
   const navigation = useNavigation<RootNavigationProp>();
   const { height: screenH, width: screenW } = useWindowDimensions();
 
-  // ── Map height animation ───────────────────────────────────────────────────
   const mapHeightFull   = Math.round(screenH * MAP_HEIGHT_RATIO);
   const mapHeightDetail = Math.round(screenH * MAP_HEIGHT_DETAIL_RATIO);
+  const mapHeightNav    = Math.round(screenH * MAP_HEIGHT_NAV_RATIO);
   const mapHeightAnim   = useRef(new Animated.Value(mapHeightFull)).current;
   const mapRef          = useRef<MapView>(null);
 
   const animateMap = (toValue: number) =>
     Animated.timing(mapHeightAnim, { toValue, duration: MAP_ANIM_MS, useNativeDriver: false }).start();
 
-  // ── Selection ──────────────────────────────────────────────────────────────
   const [selectedPin, setSelectedPin] = useState<string | null>(null);
 
-  // ── Location & region ──────────────────────────────────────────────────────
   const { coords, label: locationLabel, loading: locationLoading } = useLocation();
 
   const [mapRegion, setMapRegion] = useState<Region | null>(null);
@@ -87,12 +91,130 @@ export default function MapScreen() {
     neLng: mapRegion.longitude + mapRegion.longitudeDelta / 2,
   } : null;
 
-  // ── Route state ────────────────────────────────────────────────────────────
   const [isRoutePickerMode, setIsRoutePickerMode] = useState(false);
   const [pickerSelectedId,  setPickerSelectedId]  = useState<string | null>(null);
   const [isRouteMode,       setIsRouteMode]        = useState(false);
+  const [navStarted,        setNavStarted]         = useState(false);
+  const [muted,             setMuted]              = useState(false);
+  const [arrivalTime,       setArrivalTime]        = useState<Date>(() => new Date());
+
+  // Follow-camera state — refs shadow state so callbacks don't go stale
+  const [followCamera,   setFollowCamera]   = useState(true);
+  const [cameraDetached, setCameraDetached] = useState(false);
+  const followCameraRef   = useRef(true);
+  const cameraDetachedRef = useRef(false);
+  followCameraRef.current   = followCamera;
+  cameraDetachedRef.current = cameraDetached;
+
+  // Smoothed heading and last GPS fix — used only inside callbacks (no re-render needed)
+  const smoothedHeadingRef = useRef(-1);
+  const lastPositionRef    = useRef<{ latitude: number; longitude: number } | null>(null);
 
   const { suggestions, data: routeData, loading: routeLoading, findSuggestions, beginRoute, clearRoute } = useRoute();
+
+  // Mock polylines are empty so off-route won't fire in dev.
+  // When backend provides real polylines: call findSuggestions → navSession.updateRoute(newRoute).
+  const onReroute = useCallback((_coords: { latitude: number; longitude: number }) => {}, []);
+
+  const onPositionUpdate = useCallback((pos: NavPositionUpdate) => {
+    const lastPos = lastPositionRef.current;
+
+    // Resolve heading: prefer GPS value; fall back to bearing between consecutive fixes
+    let rawHeading = pos.heading >= 0 ? pos.heading : -1;
+    if (rawHeading < 0 && lastPos) {
+      // 1° ≈ 111 320 m — cheap lower-bound distance check before calling computeBearing
+      const approxMeters = Math.max(
+        Math.abs(pos.latitude  - lastPos.latitude),
+        Math.abs(pos.longitude - lastPos.longitude),
+      ) * 111_320;
+      if (approxMeters > BEARING_MIN_DIST_M) {
+        rawHeading = computeBearing(lastPos.latitude, lastPos.longitude, pos.latitude, pos.longitude);
+      }
+    }
+
+    // Exponential moving average to smooth jitter; handles the 350°→10° wrap
+    if (rawHeading >= 0) {
+      const prev = smoothedHeadingRef.current;
+      if (prev < 0) {
+        smoothedHeadingRef.current = rawHeading;
+      } else {
+        let delta = rawHeading - prev;
+        if (delta > 180) delta -= 360;
+        if (delta < -180) delta += 360;
+        smoothedHeadingRef.current = ((prev + HEADING_SMOOTH_ALPHA * delta) + 360) % 360;
+      }
+    }
+
+    lastPositionRef.current = { latitude: pos.latitude, longitude: pos.longitude };
+
+    if (!followCameraRef.current || cameraDetachedRef.current) return;
+
+    const heading = smoothedHeadingRef.current;
+
+    if (heading < 0) {
+      // No reliable heading yet — centre on user, flat
+      mapRef.current?.animateCamera(
+        { center: { latitude: pos.latitude, longitude: pos.longitude }, heading: 0, pitch: 0, zoom: NAV_ZOOM },
+        { duration: 800 },
+      );
+      return;
+    }
+
+    // Offset centre forward along heading so the user dot sits in the lower third
+    const center = offsetPosition(pos.latitude, pos.longitude, heading, NAV_FOLLOW_OFFSET_M);
+    mapRef.current?.animateCamera(
+      { center, heading, pitch: NAV_PITCH, zoom: NAV_ZOOM },
+      { duration: 1500 },
+    );
+  }, []);
+
+  const navSession = useNavigationSession({ onReroute, onPositionUpdate, muted });
+
+  // Helpers shared by the toggle and recenter handlers
+  const snapToFollowView = (
+    pos: { latitude: number; longitude: number } | null,
+    heading: number,
+  ) => {
+    if (!pos) return;
+    if (heading >= 0) {
+      const center = offsetPosition(pos.latitude, pos.longitude, heading, NAV_FOLLOW_OFFSET_M);
+      mapRef.current?.animateCamera(
+        { center, heading, pitch: NAV_PITCH, zoom: NAV_ZOOM },
+        { duration: RECENTER_ANIM_MS },
+      );
+    } else {
+      mapRef.current?.animateCamera(
+        { center: pos, heading: 0, pitch: 0, zoom: NAV_ZOOM },
+        { duration: RECENTER_ANIM_MS },
+      );
+    }
+  };
+
+  const snapToRouteOverview = () => {
+    if (!routeData || routeData.stops.length === 0) return;
+    const stopCoords = routeData.stops.map(stop => ({ latitude: stop.latitude, longitude: stop.longitude }));
+    if (coords) stopCoords.unshift({ latitude: coords.latitude, longitude: coords.longitude });
+    mapRef.current?.fitToCoordinates(stopCoords, {
+      edgePadding: { top: 60, bottom: 80, left: 40, right: 40 },
+      animated: true,
+    });
+  };
+
+  const handleToggleFollowCamera = () => {
+    const nextFollow = !followCamera;
+    setFollowCamera(nextFollow);
+    setCameraDetached(false);
+    if (nextFollow) {
+      snapToFollowView(lastPositionRef.current, smoothedHeadingRef.current);
+    } else {
+      snapToRouteOverview();
+    }
+  };
+
+  const handleRecenter = () => {
+    setCameraDetached(false);
+    snapToFollowView(lastPositionRef.current, smoothedHeadingRef.current);
+  };
 
   const handleEnterRoutePicker = () => {
     if (selectedPin) {
@@ -101,7 +223,7 @@ export default function MapScreen() {
     }
     setIsRoutePickerMode(true);
     setPickerSelectedId(null);
-    findSuggestions(shops, coords, bounds);
+    findSuggestions(shops, coords, bounds, authUsername, authUserId);
   };
 
   const handleExitRoutePicker = () => {
@@ -111,7 +233,7 @@ export default function MapScreen() {
   };
 
   const handleBeginRoute = () => {
-    const selected = suggestions.find(r => r.id === pickerSelectedId);
+    const selected = suggestions.find(route => route.id === pickerSelectedId);
     if (!selected) return;
     beginRoute(selected);
     setIsRoutePickerMode(false);
@@ -119,28 +241,73 @@ export default function MapScreen() {
     setIsRouteMode(true);
   };
 
+  const handleStartNavigation = () => {
+    if (!routeData) return;
+    const eta = new Date(Date.now() + routeData.totalMinutes * 60_000);
+    setArrivalTime(eta);
+    setNavStarted(true);
+    setFollowCamera(true);
+    setCameraDetached(false);
+    smoothedHeadingRef.current = -1;
+    lastPositionRef.current = null;
+    animateMap(mapHeightNav);
+    if (coords) {
+      mapRef.current?.animateCamera(
+        { center: coords, heading: 0, pitch: NAV_PITCH, zoom: NAV_ZOOM },
+        { duration: 800 },
+      );
+    }
+    navSession.start(routeData);
+  };
+
+  const handleStopNavigation = () => {
+    navSession.stop();
+    setNavStarted(false);
+    setFollowCamera(true);
+    setCameraDetached(false);
+    smoothedHeadingRef.current = -1;
+    lastPositionRef.current = null;
+    animateMap(mapHeightFull);
+    // Reset camera to flat overview of the route
+    snapToRouteOverview();
+  };
+
   const handleExitRouteMode = () => {
+    navSession.stop();
+    setNavStarted(false);
     setIsRouteMode(false);
+    setFollowCamera(true);
+    setCameraDetached(false);
+    smoothedHeadingRef.current = -1;
+    lastPositionRef.current = null;
+    animateMap(mapHeightFull);
     clearRoute();
+    if (coords) {
+      mapRef.current?.animateCamera(
+        { center: coords, heading: 0, pitch: 0 },
+        { duration: RECENTER_ANIM_MS },
+      );
+    }
   };
 
   // TODO: wire up search filtering when backend API is complete
   const handleRouteSearch = (_query: string) => {};
 
-  // ── Shop data ──────────────────────────────────────────────────────────────
+  const authUsername  = useAppSelector(s => s.auth.username) ?? 'anonymous';
+  const authUserId    = useAppSelector(s => s.auth.userId)   ?? '';
+
   const selectedNiche = useAppSelector(s => s.niche.selectedNiche);
-  const nicheLabel    = NICHES.find(n => n.id === selectedNiche)?.label ?? selectedNiche ?? 'Shops';
+  const nicheLabel    = NICHES.find(niche => niche.id === selectedNiche)?.label ?? selectedNiche ?? 'Shops';
   const shops         = useNearbyShops(selectedNiche ?? 'goth', bounds);
 
   const fallbackRegion = selectedNiche === 'vintage' ? PORTOBELLO_REGION : DEFAULT_REGION;
   const initialRegion  = coords ? { ...coords, ...LIST_DELTA } : fallbackRegion;
 
-  // ── Search ─────────────────────────────────────────────────────────────────
-  const [searchQuery,       setSearchQuery]       = useState('');
-  const [placeSuggestions,  setPlaceSuggestions]  = useState<PlaceSuggestion[]>([]);
+  const [searchQuery,      setSearchQuery]      = useState('');
+  const [placeSuggestions, setPlaceSuggestions] = useState<PlaceSuggestion[]>([]);
 
   const shopSuggestions = searchQuery.length > 1
-    ? shops.filter(s => s.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    ? shops.filter(shop => shop.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : [];
   const showDropdown = searchQuery.length > 1 && (shopSuggestions.length > 0 || placeSuggestions.length > 0);
 
@@ -157,8 +324,8 @@ export default function MapScreen() {
     const results = await Location.geocodeAsync(query);
     if (!results.length) return;
     const { latitude, longitude } = results[0];
-    const mapH = screenH * MAP_HEIGHT_RATIO;
-    const longitudeDelta = JUMP_LAT_DELTA / Math.cos(latitude * Math.PI / 180) * (screenW / mapH);
+    const mapHeight = screenH * MAP_HEIGHT_RATIO;
+    const longitudeDelta = JUMP_LAT_DELTA / Math.cos(latitude * Math.PI / 180) * (screenW / mapHeight);
     const newRegion = { latitude, longitude, latitudeDelta: JUMP_LAT_DELTA, longitudeDelta };
     setMapRegion(newRegion);
     mapRef.current?.animateToRegion(newRegion, JUMP_ANIM_MS);
@@ -172,8 +339,7 @@ export default function MapScreen() {
     setPlaceSuggestions([]);
   };
 
-  // ── Selection handlers ─────────────────────────────────────────────────────
-  const selectedShop = shops.find(s => s.id === selectedPin) ?? null;
+  const selectedShop = shops.find(shop => shop.id === selectedPin) ?? null;
 
   const handleShopSelect = (shop: MockShop) => {
     if (selectedPin === shop.id) { handleDeselect(); return; }
@@ -194,44 +360,74 @@ export default function MapScreen() {
     }
   };
 
-  // TODO: replace with in-app Google Directions API route renderer
-  const handleDirections = (_shop: MockShop) => {};
+  const handleDirections = (shop: MockShop) => {
+    const route = buildDirectRoute(shop, coords, authUsername, authUserId);
+    beginRoute(route);
+    setSelectedPin(null);
+    animateMap(mapHeightFull);
+    setIsRouteMode(true);
+  };
 
-  // ── Picker route preview (drives polyline while picker is open) ────────────
   const pickerPreviewRoute = isRoutePickerMode && suggestions.length > 0
-    ? (suggestions.find(r => r.id === pickerSelectedId) ?? suggestions[0])
+    ? (suggestions.find(route => route.id === pickerSelectedId) ?? suggestions[0])
     : null;
+
+  const toPolylineCoords = (route: typeof routeData, origin: typeof coords) => {
+    if (!route) return null;
+    return [
+      ...(route.mode === 'you' && origin ? [{ latitude: origin.latitude, longitude: origin.longitude }] : []),
+      ...route.stops.map(stop => ({ latitude: stop.latitude, longitude: stop.longitude })),
+      ...(route.mode === 'loop' && route.stops.length > 0 ? [{ latitude: route.stops[0].latitude, longitude: route.stops[0].longitude }] : []),
+    ];
+  };
+
+  const activeRouteCoords   = toPolylineCoords(routeData, coords);
+  const pickerPreviewCoords = toPolylineCoords(pickerPreviewRoute, coords);
+
+  const isActivelyNavigating = navStarted
+    && navSession.progress.state !== NavState.Idle
+    && navSession.progress.state !== NavState.Completed;
 
   return (
     <View style={styles.screen}>
-      <InkHeader>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
-            <Text style={styles.backText}>←</Text>
-          </TouchableOpacity>
-          <HeaderTitle style={styles.headerTitle}>NICHE</HeaderTitle>
-          <NicheChip label={nicheLabel} onPress={() => navigation.navigate('NichePicker')} />
-        </View>
-      </InkHeader>
 
-      <View style={styles.searchWrapper}>
-        <SearchBar
-          placeholder="Search shops or locations…"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmit={jumpToPlace}
+      {isActivelyNavigating ? (
+        <NavigationPrompt
+          progress={navSession.progress}
+          muted={muted}
+          onToggleMute={() => setMuted(prev => !prev)}
         />
-        {showDropdown && (
-          <SearchDropdown
-            shopResults={shopSuggestions}
-            placeResults={placeSuggestions}
-            onSelectShop={shop => { clearSearch(); handleShopSelect(shop); }}
-            onSelectPlace={place => { clearSearch(); jumpToPlace(place.description); }}
-          />
-        )}
-      </View>
+      ) : (
+        <InkHeader>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+              <Text style={styles.backText}>←</Text>
+            </TouchableOpacity>
+            <HeaderTitle style={styles.headerTitle}>NICHE</HeaderTitle>
+            <NicheChip label={nicheLabel} onPress={() => navigation.navigate('NichePicker')} />
+          </View>
+        </InkHeader>
+      )}
 
-      {/* Map */}
+      {!isRoutePickerMode && !isRouteMode && (
+        <View style={styles.searchWrapper}>
+          <SearchBar
+            placeholder="Search shops or locations…"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmit={jumpToPlace}
+          />
+          {showDropdown && (
+            <SearchDropdown
+              shopResults={shopSuggestions}
+              placeResults={placeSuggestions}
+              onSelectShop={shop => { clearSearch(); handleShopSelect(shop); }}
+              onSelectPlace={place => { clearSearch(); jumpToPlace(place.description); }}
+            />
+          )}
+        </View>
+      )}
+
       <Animated.View style={[styles.mapWrap, { height: mapHeightAnim }]}>
         {locationLoading
           ? <View style={styles.mapPlaceholder} />
@@ -247,79 +443,59 @@ export default function MapScreen() {
               toolbarEnabled={false}
               customMapStyle={mapStyle}
               onRegionChangeComplete={handleRegionChangeComplete}
+              onPanDrag={() => {
+                if (navStarted && followCameraRef.current) setCameraDetached(true);
+              }}
             >
-              {/* Shop markers — hidden in route/picker mode */}
-              {!isRouteMode && !isRoutePickerMode && shops.map((shop, i) => {
+              {!isRouteMode && !isRoutePickerMode && shops.map((shop, index) => {
                 const isSelected = selectedPin === shop.id;
                 return (
                   <Marker
-                    key={`marker-${i}`}
+                    key={`marker-${index}`}
                     coordinate={{ latitude: shop.latitude, longitude: shop.longitude }}
                     onPress={() => handleShopSelect(shop)}
                     anchor={{ x: 0.5, y: 1 }}
                     tracksViewChanges={false}
                     opacity={selectedPin && !isSelected ? 0 : 1}
                   >
-                    <MapMarker shop={shop} index={i} selected={isSelected} />
+                    <MapMarker shop={shop} index={index} selected={isSelected} />
                   </Marker>
                 );
               })}
 
-              {/* Active route polyline */}
-              {isRouteMode && routeData && (
-                <Polyline
-                  coordinates={[
-                    ...(routeData.mode === 'you' && coords
-                      ? [{ latitude: coords.latitude, longitude: coords.longitude }]
-                      : []),
-                    ...routeData.stops.map(s => ({ latitude: s.latitude, longitude: s.longitude })),
-                    ...(routeData.mode === 'loop' && routeData.stops.length > 0
-                      ? [{ latitude: routeData.stops[0].latitude, longitude: routeData.stops[0].longitude }]
-                      : []),
-                  ]}
-                  strokeColor={colors.ink}
-                  strokeWidth={2.5}
-                />
+              {isRouteMode && activeRouteCoords && (
+                <>
+                  <Polyline coordinates={activeRouteCoords} strokeColor={colors.pinColors[1]} strokeColors={[colors.pinColors[1], colors.pinColors[1]]} strokeWidth={9} lineCap="round" lineJoin="round" />
+                  <Polyline coordinates={activeRouteCoords} strokeColor={colors.polPalette[4]} strokeColors={[colors.polPalette[4], colors.polPalette[4]]} strokeWidth={5} lineCap="round" lineJoin="round" />
+                </>
               )}
 
-              {/* Active route stop markers */}
-              {isRouteMode && routeData && routeData.stops.map((stop, i) => (
+              {isRouteMode && routeData && routeData.stops.map((stop, index) => (
                 <Marker
                   key={`route-${stop.id}`}
                   coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
                   anchor={{ x: 0.5, y: 1 }}
                   tracksViewChanges={false}
                 >
-                  <MapMarker shop={stop} index={i} selected={false} />
+                  <MapMarker shop={stop} index={index} selected={index === navSession.progress.currentStopIndex && navStarted} />
                 </Marker>
               ))}
 
-              {/* Picker preview polyline — updates as the user taps route cards */}
-              {pickerPreviewRoute && (
-                <Polyline
-                  coordinates={[
-                    ...(pickerPreviewRoute.mode === 'you' && coords
-                      ? [{ latitude: coords.latitude, longitude: coords.longitude }]
-                      : []),
-                    ...pickerPreviewRoute.stops.map(s => ({ latitude: s.latitude, longitude: s.longitude })),
-                    ...(pickerPreviewRoute.mode === 'loop' && pickerPreviewRoute.stops.length > 0
-                      ? [{ latitude: pickerPreviewRoute.stops[0].latitude, longitude: pickerPreviewRoute.stops[0].longitude }]
-                      : []),
-                  ]}
-                  strokeColor={colors.ink}
-                  strokeWidth={2.5}
-                />
+              {pickerPreviewCoords && (
+                <>
+                  <Polyline coordinates={pickerPreviewCoords} strokeColor={colors.pinColors[1]} strokeColors={[colors.pinColors[1], colors.pinColors[1]]} strokeWidth={7} lineCap="round" lineJoin="round" />
+                  <Polyline coordinates={pickerPreviewCoords} strokeColor={colors.polPalette[4]} strokeColors={[colors.polPalette[4], colors.polPalette[4]]} strokeWidth={4} lineCap="round" lineJoin="round" />
+                </>
               )}
 
-              {/* Picker preview stop markers */}
-              {pickerPreviewRoute && pickerPreviewRoute.stops.map((stop, i) => (
+              {pickerPreviewRoute && pickerPreviewRoute.stops.map((stop, index) => (
                 <Marker
                   key={`picker-${stop.id}`}
                   coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
                   anchor={{ x: 0.5, y: 1 }}
                   tracksViewChanges={false}
                 >
-                  <MapMarker shop={stop} index={i} selected={false} />
+                  <MapMarker shop={stop} index={index} selected={false} />
                 </Marker>
               ))}
             </MapView>
@@ -336,9 +512,25 @@ export default function MapScreen() {
             <Text style={styles.routeBtnText}>FIND ROUTES →</Text>
           </TouchableOpacity>
         )}
+
+        {navStarted && (
+          <View style={styles.navCameraControls}>
+            {cameraDetached && (
+              <Button variant="pill" onPress={handleRecenter} style={styles.recenterBtn}>
+                <Text style={styles.recenterBtnText}>⊕</Text>
+              </Button>
+            )}
+            <Button
+              variant="pill"
+              active={followCamera}
+              label={followCamera ? '2D' : '3D'}
+              onPress={handleToggleFollowCamera}
+            />
+          </View>
+        )}
+
       </Animated.View>
 
-      {/* Bottom panel */}
       {selectedShop
         ? <ShopPanel key={selectedShop.id} shop={selectedShop} onBack={handleDeselect} onDirections={handleDirections} />
         : isRoutePickerMode
@@ -356,8 +548,12 @@ export default function MapScreen() {
                 route={routeData}
                 loading={routeLoading}
                 initialMode="you"
-                onBeginRoute={() => { /* TODO: hand off to native maps navigation */ }}
+                arrivalTime={arrivalTime}
+                onBeginRoute={handleStartNavigation}
+                onStopNav={handleStopNavigation}
                 onExit={handleExitRouteMode}
+                navProgress={navSession.progress}
+                isNavigating={navStarted}
               />
             : <ShopList shops={shops} nicheLabel={nicheLabel} onSelectShop={handleShopSelect} />
       }
@@ -396,15 +592,6 @@ const styles = StyleSheet.create({
   mapWrap: {
     width: '100%',
     flexShrink: 0,
-  },
-  mapCornerBridge: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 10,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
   },
   mapFill: {
     position: 'absolute',
@@ -454,5 +641,26 @@ const styles = StyleSheet.create({
     fontSize: 14,
     letterSpacing: 1.5,
     color: colors.white,
+  },
+  navCameraControls: {
+    position: 'absolute',
+    bottom: 14,
+    right: 14,
+    gap: 8,
+    alignItems: 'flex-end',
+    zIndex: 40,
+  },
+  recenterBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+  },
+  recenterBtnText: {
+    fontFamily: fonts.mono,
+    fontSize: 18,
+    color: colors.ink,
+    lineHeight: 20,
   },
 });

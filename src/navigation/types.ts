@@ -4,7 +4,6 @@ export type RootStackParamList = {
   Splash: undefined;
   NichePicker: undefined;
   Map: undefined;
-  Shop: { shopId: string };
   Route: undefined;
   Login: undefined;
   SignUp: undefined;

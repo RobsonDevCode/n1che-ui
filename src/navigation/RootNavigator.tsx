@@ -4,7 +4,6 @@ import { RootStackParamList } from './types';
 import SplashScreen from '../screens/Onboarding/SplashScreen';
 import NichePickerScreen from '../screens/Niche/NichePickerScreen';
 import MapScreen from '../screens/Map/MapScreen';
-import ShopScreen from '../screens/Shop/ShopScreen';
 import RouteScreen from '../screens/Route/RouteScreen';
 import LoginScreen from '../screens/Auth/LoginScreen';
 import SignUpScreen from '../screens/Auth/SignUpScreen';
@@ -18,7 +17,6 @@ export default function RootNavigator() {
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="NichePicker" component={NichePickerScreen} />
         <Stack.Screen name="Map" component={MapScreen} />
-        <Stack.Screen name="Shop" component={ShopScreen} />
         <Stack.Screen name="Route" component={RouteScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="SignUp" component={SignUpScreen} />

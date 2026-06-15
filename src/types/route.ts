@@ -1,5 +1,5 @@
 export type BudgetTier = '£' | '££' | '£££';
-export type RouteDuration = 60 | 120 | 180; // minutes
+export type RouteDuration = 60 | 120 | 180;
 
 export interface RouteFilters {
   budget?: BudgetTier;
@@ -8,9 +8,19 @@ export interface RouteFilters {
   mode?: 'you' | 'loop';
 }
 
+export interface RouteStep {
+  distanceMeters: number;
+  durationSeconds: number;
+  polyline: { latitude: number; longitude: number }[];
+  instruction: string;
+  maneuver: string;
+}
+
 export interface RouteLeg {
-  walkTime: string; // "5 min"
-  walkDist: string; // "0.3 mi"
+  distanceMeters: number;
+  durationSeconds: number;
+  polyline: { latitude: number; longitude: number }[];
+  steps: RouteStep[];
 }
 
 export interface RouteStop {
@@ -22,16 +32,19 @@ export interface RouteStop {
   voteCount: number;
   isOpen: boolean;
   palIdx: number;
-  leg?: RouteLeg; // undefined for the last stop
+  leg?: RouteLeg;
 }
 
 export interface RouteResponse {
   id: string;
   name: string;
-  tag: string;        // e.g. "TOP RATED", "UNDER 1H", "LOOP"
+  tag: string;
+  createdBy: string;
+  userId: string;
   stops: RouteStop[];
-  estimatedRouteTime: string; // "1h 35m"
-  totalDistanceStr: string;   // "1.4 mi"
+  estimatedRouteTime: string;
+  totalDistanceStr: string;
   totalUpvotes: number;
+  totalMinutes: number;
   mode: 'you' | 'loop';
 }

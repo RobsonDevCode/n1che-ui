@@ -12,7 +12,7 @@ const SOHO_BOX: BoundingBox = {
 export function useSplashShops(): Shop[] {
   const { data } = useQuery({
     queryKey: ['splashShops'],
-    queryFn: () => searchNearby(SOHO_BOX),
+    queryFn: () => searchNearby(SOHO_BOX, 8),
     staleTime: 1000 * 60 * 60, // 1 hour
     select: (results) =>
       results.map((p, i): Shop => ({

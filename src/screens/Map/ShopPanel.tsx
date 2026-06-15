@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Image, Keyboard, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Keyboard, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppSelector } from '../../store/hooks';
 import { colors, fonts } from '../../theme';
 import { MockShop } from './mockShops';
 import { BookmarkIcon, DirectionsIcon } from '../../components/icons';
-import OpenBadge from '../../components/common/OpenBadge';
 import Button from '../../components/common/Button';
+import FormField from '../../components/common/FormField';
+import OpenBadge from '../../components/common/OpenBadge';
 import Panel from '../../components/common/Panel';
 import Title from '../../components/common/Title';
 import Subtitle from '../../components/common/Subtitle';
@@ -31,11 +32,11 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
   const insets = useSafeAreaInsets();
   const username = useAppSelector(s => s.auth.username) ?? 'anonymous';
 
-  const [voted, setVoted] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [userReviews, setUserReviews] = useState<Review[]>([]);
+  const [voted,          setVoted]          = useState(false);
+  const [saved,          setSaved]          = useState(false);
+  const [userReviews,    setUserReviews]    = useState<Review[]>([]);
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewText, setReviewText] = useState('');
+  const [reviewText,     setReviewText]     = useState('');
 
   const allReviews = [...MOCK_REVIEWS, ...userReviews.filter(r => r.shopId === shop.id)];
 
@@ -43,11 +44,11 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
     if (!reviewText.trim()) return;
     // TODO: POST /shops/:id/reviews
     setUserReviews(prev => [...prev, {
-      id: Date.now().toString(),
+      id:     Date.now().toString(),
       shopId: shop.id,
-      user: username,
-      date: new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
-      text: reviewText.trim(),
+      user:   username,
+      date:   new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
+      text:   reviewText.trim(),
     }]);
     setReviewText('');
     setShowReviewForm(false);
@@ -57,14 +58,12 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
   return (
     <Panel variant="paper">
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} activeOpacity={0.7} style={styles.backBtn}>
-          <Subtitle color={colors.grey}>← ALL SHOPS</Subtitle>
-        </TouchableOpacity>
+        <Button variant="pillFlat" label="← BACK" onPress={onBack} style={styles.backBtn} />
         <OpenBadge isOpen={shop.isOpen} closingTime={shop.closingTime} />
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Hero */}
+
         <View style={[styles.hero, { backgroundColor: colors.polPalette[shop.palIdx % colors.polPalette.length] }]}>
           {shop.photoUrl
             ? <Image source={{ uri: shop.photoUrl }} style={styles.heroImage} resizeMode="cover" />
@@ -77,7 +76,6 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
           </View>
         </View>
 
-        {/* Stats strip */}
         <View style={styles.statsStrip}>
           <View style={styles.statCell}>
             <Title size={18} color={colors.ink}>↑{shop.voteCount}</Title>
@@ -90,49 +88,58 @@ export default function ShopPanel({ shop, onBack, onDirections }: Props) {
           </View>
         </View>
 
-        {/* Actions */}
         <View style={styles.actions}>
           <Button
-            variant="action"
+            variant="pillFlat"
             active={voted}
             label={voted ? '✓ UPVOTED' : '↑ UPVOTE'}
             onPress={() => setVoted(v => !v)}
             style={{ flex: 1 }}
           />
-          <Button variant="action" active={saved} onPress={() => setSaved(v => !v)} style={styles.iconBtn}>
+          <Button variant="pillFlat" active={saved} onPress={() => setSaved(v => !v)} style={styles.iconBtn}>
             <BookmarkIcon filled={saved} color={saved ? 'white' : colors.ink} />
           </Button>
-          <Button variant="action" onPress={() => onDirections(shop)} style={styles.iconBtn}>
+          <Button variant="pillFlat" onPress={() => onDirections(shop)} style={styles.iconBtn}>
             <DirectionsIcon />
           </Button>
         </View>
 
-        {/* Reviews */}
         <View style={styles.reviewsSection}>
           <View style={styles.reviewsHeader}>
             <Title size={16} color={colors.ink}>COMMUNITY REVIEWS</Title>
             <Subtitle color={colors.grey} style={styles.reviewsCount}>({allReviews.length})</Subtitle>
           </View>
 
-          {allReviews.map(r => (
-            <ReviewCard key={r.id} review={r} />
+          {allReviews.map(review => (
+            <ReviewCard key={review.id} review={review} />
           ))}
 
           {showReviewForm ? (
             <View style={styles.reviewForm}>
-              <TextInput
-                style={styles.reviewInput}
+              <FormField
+                label="Your Review"
                 placeholder="Share your experience…"
-                placeholderTextColor={colors.grey}
                 value={reviewText}
                 onChangeText={setReviewText}
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
+                inputStyle={styles.reviewInput}
               />
               <View style={styles.reviewFormActions}>
-                <Button variant="outline" label="Cancel" onPress={() => { setShowReviewForm(false); setReviewText(''); }} style={{ flex: 1 }} />
-                <Button variant="primary" label="Submit" disabled={!reviewText.trim()} onPress={handleSubmitReview} style={{ flex: 1, marginTop: 0, marginBottom: 0 }} />
+                <Button
+                  variant="outline"
+                  label="Cancel"
+                  onPress={() => { setShowReviewForm(false); setReviewText(''); }}
+                  style={{ flex: 1 }}
+                />
+                <Button
+                  variant="primary"
+                  label="Submit"
+                  disabled={!reviewText.trim()}
+                  onPress={handleSubmitReview}
+                  style={{ flex: 1, marginTop: 0, marginBottom: 0 }}
+                />
               </View>
             </View>
           ) : (
@@ -158,7 +165,6 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.ink,
     flexShrink: 0,
   },
-  backBtn: { padding: 2 },
   scroll: { flex: 1 },
 
   hero: {
@@ -211,13 +217,20 @@ const styles = StyleSheet.create({
   },
   statValueTruncate: { maxWidth: '100%' },
 
+  backBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
   actions: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
     padding: 14,
     backgroundColor: colors.paper,
   },
-  iconBtn: { paddingHorizontal: 16 },
+  iconBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
 
   reviewsSection: {
     borderTopWidth: 2,
@@ -238,18 +251,10 @@ const styles = StyleSheet.create({
   writeReviewBtn: { margin: 14 },
   reviewForm: {
     padding: 14,
-    gap: 10,
     borderTopWidth: 1,
     borderTopColor: colors.grey2,
   },
   reviewInput: {
-    fontFamily: fonts.special,
-    fontSize: 13,
-    color: colors.ink,
-    borderWidth: 2,
-    borderColor: colors.ink,
-    backgroundColor: colors.paper,
-    padding: 10,
     minHeight: 90,
     textAlignVertical: 'top',
   },

@@ -32,9 +32,12 @@ export default function RouteCard({ route, rank, selected, onPress }: Props) {
             {String(rank).padStart(2, '0')}
           </Text>
         </View>
-        <Text style={[styles.name, { color: fg }]} numberOfLines={1}>
-          {route.name}
-        </Text>
+        <View style={styles.nameCol}>
+          <Text style={[styles.name, { color: fg }]} numberOfLines={1}>
+            {route.name}
+          </Text>
+          <Text style={[styles.createdBy, { color: muted }]}>@{route.createdBy}</Text>
+        </View>
         <View style={styles.votes}>
           <Text style={[styles.votesLabel, { color: muted }]}>UPVOTES</Text>
           <Text style={[styles.votesValue, { color: fg }]}>↑{route.totalUpvotes}</Text>
@@ -106,11 +109,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     letterSpacing: 0.5,
   },
-  name: {
+  nameCol: {
     flex: 1,
+    minWidth: 0,
+  },
+  name: {
     fontFamily: fonts.bebas,
     fontSize: 19,
     letterSpacing: 0.5,
+  },
+  createdBy: {
+    fontFamily: fonts.mono,
+    fontSize: 9,
+    letterSpacing: 0.5,
+    marginTop: 1,
   },
   votes: {
     alignItems: 'flex-end',

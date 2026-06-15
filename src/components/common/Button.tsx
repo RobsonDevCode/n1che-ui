@@ -5,7 +5,7 @@ interface Props {
   onPress: () => void;
   label?: string;
   children?: React.ReactNode;
-  variant?: 'outline' | 'primary' | 'ghost' | 'action' | 'link' | 'chip' | 'paper' | 'icon' | 'cta';
+  variant?: 'outline' | 'primary' | 'ghost' | 'action' | 'link' | 'chip' | 'paper' | 'icon' | 'cta' | 'danger' | 'pill' | 'pillFlat';
   active?: boolean;
   disabled?: boolean;
   loading?: boolean;
@@ -27,31 +27,39 @@ export default function Button({
   const rotation = rotate ?? (variant === 'primary' ? -0.3 : 0);
 
   const containerStyle = {
-    outline: styles.outline,
-    primary: disabled ? styles.primaryDisabled : styles.primary,
-    ghost:   styles.ghost,
-    action:  active ? styles.actionActive : styles.action,
-    link:    styles.link,
-    chip:    active ? styles.chipActive : styles.chip,
-    paper:   styles.paper,
-    icon:    styles.icon,
-    cta:     styles.cta,
+    outline:   styles.outline,
+    primary:   disabled ? styles.primaryDisabled : styles.primary,
+    ghost:     styles.ghost,
+    action:    active ? styles.actionActive : styles.action,
+    link:      styles.link,
+    chip:      active ? styles.chipActive : styles.chip,
+    paper:     styles.paper,
+    icon:      styles.icon,
+    cta:       styles.cta,
+    danger:    styles.danger,
+    pill:      active ? styles.pillActive : styles.pill,
+    pillFlat:  active ? styles.pillFlatActive : styles.pillFlat,
   }[variant];
 
   const textStyle = {
-    outline: styles.outlineText,
-    primary: styles.primaryText,
-    ghost:   styles.ghostText,
-    action:  active ? styles.actionTextActive : styles.actionText,
-    link:    styles.linkText,
-    chip:    active ? styles.chipTextActive : styles.chipText,
-    paper:   styles.paperText,
-    icon:    styles.iconText,
-    cta:     styles.ctaText,
+    outline:   styles.outlineText,
+    primary:   styles.primaryText,
+    ghost:     styles.ghostText,
+    action:    active ? styles.actionTextActive : styles.actionText,
+    link:      styles.linkText,
+    chip:      active ? styles.chipTextActive : styles.chipText,
+    paper:     styles.paperText,
+    icon:      styles.iconText,
+    cta:       styles.ctaText,
+    danger:    styles.dangerText,
+    pill:      active ? styles.pillTextActive : styles.pillText,
+    pillFlat:  active ? styles.pillFlatTextActive : styles.pillFlatText,
   }[variant];
 
   const indicatorColor =
-    variant === 'primary' || variant === 'ghost' || (variant === 'action' && active) || (variant === 'chip' && active)
+    variant === 'primary' || variant === 'ghost' || variant === 'danger' ||
+    (variant === 'action'   && active) || (variant === 'chip'     && active) ||
+    (variant === 'pill'     && active) || (variant === 'pillFlat' && active)
       ? colors.white
       : colors.ink;
 
@@ -229,5 +237,96 @@ const styles = StyleSheet.create({
     fontSize: 20,
     letterSpacing: 2.5,
     color: colors.ink,
+  },
+
+  danger: {
+    borderRadius: 23,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    backgroundColor: '#C0392B',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dangerText: {
+    fontFamily: fonts.bebas,
+    fontSize: 18,
+    letterSpacing: 2,
+    color: colors.white,
+  },
+
+  // Floating pill — map overlay controls. Shadow lifts it off the map surface.
+  pill: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: 'rgba(17,17,17,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  pillActive: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    backgroundColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  pillText: {
+    fontFamily: fonts.bebas,
+    fontSize: 14,
+    letterSpacing: 1.5,
+    color: colors.ink,
+  },
+  pillTextActive: {
+    fontFamily: fonts.bebas,
+    fontSize: 14,
+    letterSpacing: 1.5,
+    color: colors.white,
+  },
+
+  // Flat pill — in-panel buttons. Same shape as pill without the floating shadow.
+  pillFlat: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    backgroundColor: colors.white,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillFlatActive: {
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    backgroundColor: colors.ink,
+    borderWidth: 2,
+    borderColor: colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillFlatText: {
+    fontFamily: fonts.bebas,
+    fontSize: 14,
+    letterSpacing: 1.5,
+    color: colors.ink,
+  },
+  pillFlatTextActive: {
+    fontFamily: fonts.bebas,
+    fontSize: 14,
+    letterSpacing: 1.5,
+    color: colors.white,
   },
 });
