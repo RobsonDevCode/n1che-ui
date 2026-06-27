@@ -6,13 +6,13 @@ import { useAppSelector } from '../../store/hooks';
 import { colors, fonts } from '../../theme';
 import { MockShop } from './mockShops';
 import { BookmarkIcon, DirectionsIcon } from '../../components/icons';
-import Button from '../../components/common/Button';
+import Button from '../../components/Button';
 import FormField from '../../components/common/FormField';
-import OpenBadge from '../../components/common/OpenBadge';
-import Panel from '../../components/common/Panel';
+import OpenBadge from '../../components/OpenBadge';
+import Panel from '../../components/Panel';
 import Title from '../../components/common/Title';
 import Subtitle from '../../components/common/Subtitle';
-import ReviewCard from '../../components/common/ReviewCard';
+import ReviewCard from '../../components/ReviewCard';
 import { Review } from '../../types/review';
 
 // TODO: replace with GET /shops/:id/reviews from the API

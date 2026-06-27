@@ -1,24 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { colors, fonts } from '../../theme';
-import { Review } from '../../types/review';
 
-interface Props {
-  review: Review;
-}
-
-export default function ReviewCard({ review }: Props) {
-  return (
-    <View style={styles.card}>
-      <View style={styles.meta}>
-        <Text style={styles.user}>@{review.user}</Text>
-        <Text style={styles.date}>{review.date}</Text>
-      </View>
-      <Text style={styles.body}>{review.text}</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   card: {
     paddingHorizontal: 16,
     paddingVertical: 12,

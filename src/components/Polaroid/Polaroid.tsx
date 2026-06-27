@@ -1,27 +1,12 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, fonts } from '../../theme';
 import HalftonePattern from '../common/HalftonePattern';
-import { ShopDisplay } from '../../types/shopDisplay';
-
-interface PolaroidProps {
-  shop: ShopDisplay;
-  size: 'home' | 'map';
-  index: number;
-  selected?: boolean;
-  onImageLoad?: () => void;
-}
-
-const CARD_BG = '#F8F7F3';
-
-// frame = white border around the photo (sides + top)
-// capH  = caption strip height (bottom, thicker — classic polaroid)
-const HOME = { w: 108, photoH: 76, frame: 7, capH: 32, initialSize: 34, nameSize: 9   };
-const MAP  = { w: 48,  photoH: 32, frame: 3, capH: 13, initialSize: 15, nameSize: 5.5 };
+import { PolaroidProps } from './types';
+import { SIZE, POL_PALETTE, POP_COLOR, styles } from './constants';
 
 export default function Polaroid({ shop, size, index, selected = false, onImageLoad }: PolaroidProps) {
-  const d = size === 'home' ? HOME : MAP;
-  const bg = colors.polPalette[index % colors.polPalette.length];
+  const d = SIZE[size];
+  const bg = POL_PALETTE[index % POL_PALETTE.length];
   const initial = shop.name.charAt(0).toUpperCase();
   const isMap = size === 'map';
   const totalH = d.frame + d.photoH + d.capH;
@@ -85,55 +70,9 @@ export default function Polaroid({ shop, size, index, selected = false, onImageL
           </Text>
         )}
         {size === 'map' && selected && (
-          <View style={[styles.dot, { backgroundColor: colors.pop }]} />
+          <View style={[styles.dot, { backgroundColor: POP_COLOR }]} />
         )}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: CARD_BG,
-  },
-  cardMap: {
-    borderWidth: 1,
-    borderColor: '#111111',
-  },
-  photo: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  initial: {
-    fontFamily: fonts.bebas,
-    color: 'rgba(255,255,255,0.16)',
-    zIndex: 1,
-  },
-  caption: {
-    backgroundColor: CARD_BG,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 4,
-    gap: 1,
-  },
-  name: {
-    fontFamily: fonts.special,
-    color: '#282828',
-    textAlign: 'center',
-    lineHeight: 12,
-  },
-  sub: {
-    fontFamily: fonts.mono,
-    fontSize: 6.5,
-    color: colors.grey,
-    textAlign: 'center',
-    letterSpacing: 0.06,
-  },
-  dot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-  },
-});

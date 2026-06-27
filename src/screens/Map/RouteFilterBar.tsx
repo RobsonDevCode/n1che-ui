@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { colors, fonts } from '../../theme';
 import { BudgetTier, RouteDuration, RouteFilters } from '../../types/route';
-import Button from '../../components/common/Button';
+import Button from '../../components/Button';
 
 const BUDGET_TIERS: BudgetTier[] = ['£', '££', '£££'];
 const DURATIONS: { label: string; value: RouteDuration }[] = [

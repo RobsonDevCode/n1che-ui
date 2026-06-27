@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'; // TouchableOpacity kept for niche selection rows
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import Button from '../../components/common/Button';
+import Button from '../../components/Button';
 import { colors, fonts } from '../../theme';
 import { RootNavigationProp } from '../../navigation/types';
 import { useAppDispatch } from '../../store/hooks';

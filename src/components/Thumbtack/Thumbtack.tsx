@@ -1,15 +1,10 @@
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../theme';
-
-interface ThumbstackProps {
-  index: number;
-  selected?: boolean;
-  size?: number;
-}
+import { ThumbstackProps } from './types';
+import { PIN_COLORS, POP_COLOR, styles } from './constants';
 
 export default function Thumbtack({ index, selected = false, size = 14 }: ThumbstackProps) {
-  const pinColor = selected ? colors.pop : colors.pinColors[index % colors.pinColors.length];
+  const pinColor = selected ? POP_COLOR : PIN_COLORS[index % PIN_COLORS.length];
   const light = lighten(pinColor, 55);
   const dark  = darken(pinColor, 25);
 
@@ -42,22 +37,3 @@ function darken(hex: string, amt: number): string {
   const b = Math.max(0, (n         & 0xff) - amt);
   return `rgb(${r},${g},${b})`;
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    alignItems: 'center',
-  },
-  head: {
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.45,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  shaft: {
-    width: 2,
-    height: 9,
-    backgroundColor: 'rgba(90,90,90,0.7)',
-  },
-});

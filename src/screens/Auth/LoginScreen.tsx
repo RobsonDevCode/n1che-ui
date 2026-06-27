@@ -8,7 +8,7 @@ import { signIn, getCurrentUser } from '../../services/auth/cognito';
 import { parseAuthError } from '../../utils/authErrors';
 import AuthLayout from './AuthLayout';
 import FormField from '../../components/common/FormField';
-import Button from '../../components/common/Button';
+import Button from '../../components/Button';
 import { authStyles as s } from './authStyles';
 
 export default function LoginScreen() {

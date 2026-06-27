@@ -9,7 +9,7 @@ import { signUp, confirmSignUp, resendSignUpCode, signIn, signOut, getCurrentUse
 import { parseAuthError } from '../../utils/authErrors';
 import AuthLayout from './AuthLayout';
 import FormField from '../../components/common/FormField';
-import Button from '../../components/common/Button';
+import Button from '../../components/Button';
 import PasswordRequirements from '../../components/common/PasswordRequirements';
 import { authStyles as s } from './authStyles';
 

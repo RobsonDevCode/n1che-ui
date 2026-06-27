@@ -1,7 +1,7 @@
 import { StyleSheet, View, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme';
-import Button from '../../components/common/Button';
+import Button from '../../components/Button';
 
 export interface NavBarItem {
   icon: React.ReactNode;

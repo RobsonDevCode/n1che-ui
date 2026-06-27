@@ -1,86 +1,101 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, fonts } from '../../theme';
 import { PlaceResult } from '../../services/maps/googlePlaces';
-import Panel from '../../components/common/Panel';
 import Title from '../../components/common/Title';
-import FormField from '../../components/common/FormField';
-import Button from '../../components/common/Button';
+import Button from '../../components/Button';
 
 interface Props {
   place: PlaceResult;
-  description: string;
-  onChangeDescription: (text: string) => void;
   submitting: boolean;
   onSubmit: () => void;
   onBack: () => void;
 }
 
 export default function AddShopPanel({
-  place, description, onChangeDescription,
-  submitting, onSubmit, onBack,
+  place, submitting, onSubmit, onBack,
 }: Props) {
-  return (
-    <Panel variant="paper">
-      <ScrollView style={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <View style={styles.info}>
-            <Title size={24} color={colors.ink}>{place.name.toUpperCase()}</Title>
-            <Text style={styles.address}>{place.address}</Text>
-          </View>
-          <Button variant="icon" onPress={onBack} style={styles.closeBtn}>
-            <Text style={styles.closeBtnText}>←</Text>
-          </Button>
-        </View>
+  const palIdx = place.name.charCodeAt(0) % colors.polPalette.length;
 
-        <View style={styles.form}>
-          <FormField
-            label="Why is this place niche?"
-            placeholder="Tell us what makes it special…"
-            value={description}
-            onChangeText={onChangeDescription}
-            multiline
-            numberOfLines={3}
-            textAlignVertical="top"
-            inputStyle={styles.descInput}
-          />
-          <Button
-            variant="primary"
-            label="Submit Shop"
-            disabled={!description.trim()}
-            loading={submitting}
-            onPress={onSubmit}
-          />
+  return (
+    <View style={styles.container}>
+      <View style={[styles.hero, { backgroundColor: colors.polPalette[palIdx] }]}>
+        {place.photoUrl
+          ? <Image source={{ uri: place.photoUrl }} style={styles.heroImage} resizeMode="cover" />
+          : <Title size={72} color="rgba(255,255,255,0.18)">{place.name.charAt(0).toUpperCase()}</Title>
+        }
+        <LinearGradient colors={['transparent', 'rgba(0,0,0,0.65)']} style={styles.heroGradient} pointerEvents="none" />
+        <View style={styles.heroInfo}>
+          <Title size={24} color={colors.white} style={styles.shopName}>{place.name.toUpperCase()}</Title>
+          <Text style={styles.shopAddr}>{place.address}</Text>
         </View>
-      </ScrollView>
-    </Panel>
+        <Button variant="icon" onPress={onBack} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>←</Text>
+        </Button>
+      </View>
+
+      <View style={styles.actions}>
+        <Button
+          variant="primary"
+          label="Add Shop"
+          loading={submitting}
+          onPress={onSubmit}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.ink,
+  container: {
+    backgroundColor: colors.paper,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    overflow: 'hidden',
   },
-  info: { flex: 1, gap: 4, marginRight: 12 },
-  address: {
+  hero: {
+    height: 140,
+    width: '100%',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroImage: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+  },
+  heroGradient: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+  },
+  heroInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 14,
+  },
+  shopName: { lineHeight: 26 },
+  shopAddr: {
     fontFamily: fonts.special,
     fontSize: 12,
-    color: colors.grey,
+    color: 'rgba(255,255,255,0.72)',
   },
-  closeBtn: { padding: 4 },
-  closeBtnText: {
+  backBtn: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderWidth: 0,
+  },
+  backBtnText: {
     fontFamily: fonts.oswald,
-    fontSize: 20,
-    color: colors.ink,
-    lineHeight: 22,
+    fontSize: 18,
+    color: colors.white,
+    lineHeight: 20,
   },
-  form: { padding: 16, gap: 8 },
-  descInput: { minHeight: 80, textAlignVertical: 'top' },
+  actions: { padding: 16 },
 });

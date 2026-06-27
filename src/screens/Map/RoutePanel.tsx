@@ -1,8 +1,8 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
-import Button from '../../components/common/Button';
-import Panel from '../../components/common/Panel';
+import Button from '../../components/Button';
+import Panel from '../../components/Panel';
 import Title from '../../components/common/Title';
 import Subtitle from '../../components/common/Subtitle';
 import { RouteResponse } from '../../types/route';

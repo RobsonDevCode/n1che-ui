@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Keyboard, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Animated, Keyboard, Platform, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import MapView, { Marker, Polyline, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
@@ -14,16 +14,16 @@ import { useNearbyShops } from '../../hooks/useNearbyShops';
 import { useLocation } from '../../hooks/useLocation';
 import InkHeader from '../../components/common/InkHeader';
 import HeaderTitle from '../../components/common/HeaderTitle';
-import NicheChip from '../../components/common/NicheChip';
-import SearchBar from '../../components/common/SearchBar';
-import SearchDropdown, { PlaceSuggestion } from '../../components/common/SearchDropdown';
-import MapMarker from '../../components/MapMarker/MapMarker';
+import NicheChip from '../../components/NicheChip';
+import SearchBar from '../../components/SearchBar';
+import SearchDropdown, { PlaceSuggestion } from '../../components/SearchDropdown';
+import MapMarker from '../../components/MapMarker';
 import ShopPanel from './ShopPanel';
 import ShopList from './ShopList';
 import RoutePanel from './RoutePanel';
 import RoutePickerPanel from './RoutePickerPanel';
-import NavigationPrompt from '../../components/NavigationPrompt/NavigationPrompt';
-import Button from '../../components/common/Button';
+import NavigationPrompt from '../../components/NavigationPrompt';
+import Button from '../../components/Button';
 import { useRoute, buildDirectRoute } from '../../hooks/useRoute';
 import { useNavigationSession } from '../../hooks/useNavigationSession';
 import MapNavBar from './MapNavBar';
@@ -32,6 +32,7 @@ import ListIcon from '../../components/icons/ListIcon';
 import AddShopIcon from '../../components/icons/AddShopIcon';
 import RouteIcon from '../../components/icons/RouteIcon';
 import MapIcon from '../../components/icons/MapIcon';
+import { Tooltip } from '../../components/Tooltip';
 import { NavPositionUpdate, NavState } from '../../types/navigation';
 import { computeBearing, offsetPosition } from '../../utils/geo';
 import { NAV_ZOOM, NAV_PITCH, NAV_FOLLOW_OFFSET_M, HEADING_SMOOTH_ALPHA, BEARING_MIN_DIST_M } from '../../constants/navigation';
@@ -40,11 +41,12 @@ const ZOOM_DELTA     = { latitudeDelta: 0.004, longitudeDelta: 0.003 };
 const LIST_DELTA     = { latitudeDelta: 0.02,  longitudeDelta: 0.02  };
 const JUMP_LAT_DELTA = 0.06;
 
-const MAP_HEIGHT_RATIO        = 0.45;
-const MAP_HEIGHT_DETAIL_RATIO = 0.28;
-const MAP_HEIGHT_NAV_RATIO    = 0.55;
-const MAP_HEIGHT_NAVBAR_RATIO = 0.78;
-const MAP_HEIGHT_LIST_RATIO   = 0.44;
+const MAP_HEIGHT_RATIO            = 0.45;
+const MAP_HEIGHT_DETAIL_RATIO     = 0.28;
+const MAP_HEIGHT_NAV_RATIO        = 0.55;
+const MAP_HEIGHT_NAVBAR_RATIO     = 0.78;
+const MAP_HEIGHT_LIST_RATIO       = 0.44;
+const MAP_HEIGHT_ADD_SHOP_RATIO   = 0.52;
 
 const MAP_ANIM_MS              = 300;
 const REGION_DEBOUNCE_MS       = 400;
@@ -58,11 +60,12 @@ export default function MapScreen() {
   const navigation = useNavigation<RootNavigationProp>();
   const { height: screenH, width: screenW } = useWindowDimensions();
 
-  const mapHeightFull   = Math.round(screenH * MAP_HEIGHT_RATIO);
-  const mapHeightDetail = Math.round(screenH * MAP_HEIGHT_DETAIL_RATIO);
-  const mapHeightNav    = Math.round(screenH * MAP_HEIGHT_NAV_RATIO);
-  const mapHeightNavBar = Math.round(screenH * MAP_HEIGHT_NAVBAR_RATIO);
-  const mapHeightList   = Math.round(screenH * MAP_HEIGHT_LIST_RATIO);
+  const mapHeightFull    = Math.round(screenH * MAP_HEIGHT_RATIO);
+  const mapHeightDetail  = Math.round(screenH * MAP_HEIGHT_DETAIL_RATIO);
+  const mapHeightNav     = Math.round(screenH * MAP_HEIGHT_NAV_RATIO);
+  const mapHeightNavBar  = Math.round(screenH * MAP_HEIGHT_NAVBAR_RATIO);
+  const mapHeightList    = Math.round(screenH * MAP_HEIGHT_LIST_RATIO);
+  const mapHeightAddShop = Math.round(screenH * MAP_HEIGHT_ADD_SHOP_RATIO);
   const mapHeightAnim   = useRef(new Animated.Value(mapHeightNavBar)).current;
   const mapRef          = useRef<MapView>(null);
 
@@ -113,7 +116,6 @@ export default function MapScreen() {
   const [addShopResults,    setAddShopResults]     = useState<PlaceResult[]>([]);
   const [addShopSearching,  setAddShopSearching]   = useState(false);
   const [selectedAddShop,   setSelectedAddShop]    = useState<PlaceResult | null>(null);
-  const [addShopDesc,       setAddShopDesc]        = useState('');
   const [addShopSubmitting, setAddShopSubmitting]  = useState(false);
 
   useEffect(() => {
@@ -125,6 +127,32 @@ export default function MapScreen() {
       });
     }
   }, [addShopResults, selectedAddShop, isAddShopMode]);
+
+  const preKeyboardMapHeight = useRef<number | null>(null);
+
+  useEffect(() => {
+    const addShopActive = isAddShopMode && selectedAddShop;
+    const shopPanelActive = !!selectedPin;
+    if (!addShopActive && !shopPanelActive) return;
+
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = (e: { endCoordinates: { height: number } }) => {
+      preKeyboardMapHeight.current = mapHeightDetail;
+      const shrunkHeight = Math.max(60, mapHeightDetail - e.endCoordinates.height + 80);
+      animateMap(shrunkHeight);
+    };
+
+    const onHide = () => {
+      animateMap(preKeyboardMapHeight.current ?? mapHeightDetail);
+      preKeyboardMapHeight.current = null;
+    };
+
+    const showSub = Keyboard.addListener(showEvent, onShow);
+    const hideSub = Keyboard.addListener(hideEvent, onHide);
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, [isAddShopMode, selectedAddShop, selectedPin, mapHeightDetail]);
 
   // Follow-camera state — refs shadow state so callbacks don't go stale
   const [followCamera,   setFollowCamera]   = useState(true);
@@ -406,10 +434,12 @@ export default function MapScreen() {
   };
 
   const addShopDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const preAddShopRegion = useRef<Region | null>(null);
 
   const handleEnterAddShop = () => {
     if (selectedPin) setSelectedPin(null);
     setIsListOpen(false);
+    preAddShopRegion.current = mapRegion;
     setIsAddShopMode(true);
     animateMap(mapHeightNavBar);
   };
@@ -420,15 +450,20 @@ export default function MapScreen() {
     setAddShopResults([]);
     setAddShopSearching(false);
     setSelectedAddShop(null);
-    setAddShopDesc('');
     clearTimeout(addShopDebounceRef.current);
     animateMap(mapHeightNavBar);
+
+    const savedRegion = preAddShopRegion.current;
+    if (savedRegion) {
+      setMapRegion(savedRegion);
+      mapRef.current?.animateToRegion(savedRegion, SELECT_ANIM_MS);
+    }
+    preAddShopRegion.current = null;
   };
 
   const handleAddShopSearch = useCallback((text: string) => {
     setAddShopQuery(text);
     setSelectedAddShop(null);
-    setAddShopDesc('');
     animateMap(mapHeightNavBar);
     clearTimeout(addShopDebounceRef.current);
 
@@ -454,7 +489,7 @@ export default function MapScreen() {
   const handleSelectAddShop = (place: PlaceResult) => {
     Keyboard.dismiss();
     setSelectedAddShop(place);
-    animateMap(mapHeightDetail);
+    animateMap(mapHeightAddShop);
     mapRef.current?.animateToRegion(
       { latitude: place.latitude, longitude: place.longitude, ...ZOOM_DELTA },
       SELECT_ANIM_MS,
@@ -463,7 +498,6 @@ export default function MapScreen() {
 
   const handleDeselectAddShop = () => {
     setSelectedAddShop(null);
-    setAddShopDesc('');
     animateMap(mapHeightNavBar);
     if (addShopResults.length > 0) {
       const allCoords = addShopResults.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
@@ -478,7 +512,7 @@ export default function MapScreen() {
     if (!selectedAddShop) return;
     Keyboard.dismiss();
     setAddShopSubmitting(true);
-    // TODO: POST /shops — send selectedAddShop.id, name, address, lat, lng, addShopDesc, selectedNiche
+    // TODO: POST /shops — send selectedAddShop.id, name, address, lat, lng, selectedNiche
     setAddShopSubmitting(false);
     handleExitAddShop();
   };
@@ -527,12 +561,21 @@ export default function MapScreen() {
       {!isRoutePickerMode && !isRouteMode && (
         <View style={styles.searchWrapper}>
           {isAddShopMode ? (
-            <SearchBar
-              placeholder="Search shop name…"
-              value={addShopQuery}
-              onChangeText={handleAddShopSearch}
-              onSubmit={() => {}}
-            />
+            <>
+              <SearchBar
+                variant="default"
+                placeholder="Search shop name…"
+                value={addShopQuery}
+                onChangeText={handleAddShopSearch}
+                onSubmit={() => {}}
+                loading={addShopSearching}
+                onClear={() => handleAddShopSearch('')}
+              />
+              <Tooltip
+                text="Search for a shop by name, then tap the pin to add it"
+                visible={addShopQuery.length === 0}
+              />
+            </>
           ) : (
             <>
               <SearchBar
@@ -693,8 +736,6 @@ export default function MapScreen() {
               : isAddShopMode && selectedAddShop
                 ? <AddShopPanel
                     place={selectedAddShop}
-                    description={addShopDesc}
-                    onChangeDescription={setAddShopDesc}
                     submitting={addShopSubmitting}
                     onSubmit={handleSubmitAddShop}
                     onBack={handleDeselectAddShop}

@@ -1,10 +1,10 @@
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { colors, fonts } from '../../theme';
 import { RouteResponse } from '../../types/route';
-import Panel from '../../components/common/Panel';
+import Panel from '../../components/Panel';
 import Title from '../../components/common/Title';
 import Subtitle from '../../components/common/Subtitle';
-import RouteCard from '../../components/RouteCard/RouteCard';
+import RouteCard from '../../components/RouteCard';
 
 interface Props {
   routes: RouteResponse[];

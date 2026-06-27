@@ -2,10 +2,10 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts } from '../../theme';
 import { MockShop } from './mockShops';
-import ShopCard from '../../components/ShopCard/ShopCard';
-import Panel from '../../components/common/Panel';
+import ShopCard from '../../components/ShopCard';
+import Panel from '../../components/Panel';
 import Title from '../../components/common/Title';
-import Button from '../../components/common/Button';
+import Button from '../../components/Button';
 
 interface Props {
   shops: MockShop[];
