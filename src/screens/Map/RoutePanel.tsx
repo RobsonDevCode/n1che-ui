@@ -104,7 +104,7 @@ export default function RoutePanel({
           </Subtitle>
         </View>
         <Button variant="icon" onPress={onExit} style={styles.closeBtn}>
-          <Text style={styles.closeBtnText}>✕</Text>
+          <Text style={styles.closeBtnText}>←</Text>
         </Button>
       </View>
 

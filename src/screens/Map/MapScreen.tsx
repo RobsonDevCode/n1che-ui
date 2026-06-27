@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Animated, Keyboard, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Animated, Keyboard, StyleSheet, Text, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import MapView, { Marker, Polyline, Region, PROVIDER_GOOGLE } from 'react-native-maps';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
@@ -9,7 +9,7 @@ import { RootNavigationProp } from '../../navigation/types';
 import { NICHES } from '../Niche/niches';
 import { DEFAULT_REGION, PORTOBELLO_REGION, MockShop } from './mockShops';
 import mapStyle from './mapStyle';
-import { autocomplete } from '../../services/maps/googlePlaces';
+import { autocomplete, textSearch, PlaceResult } from '../../services/maps/googlePlaces';
 import { useNearbyShops } from '../../hooks/useNearbyShops';
 import { useLocation } from '../../hooks/useLocation';
 import InkHeader from '../../components/common/InkHeader';
@@ -26,6 +26,12 @@ import NavigationPrompt from '../../components/NavigationPrompt/NavigationPrompt
 import Button from '../../components/common/Button';
 import { useRoute, buildDirectRoute } from '../../hooks/useRoute';
 import { useNavigationSession } from '../../hooks/useNavigationSession';
+import MapNavBar from './MapNavBar';
+import AddShopPanel from './AddShopPanel';
+import ListIcon from '../../components/icons/ListIcon';
+import AddShopIcon from '../../components/icons/AddShopIcon';
+import RouteIcon from '../../components/icons/RouteIcon';
+import MapIcon from '../../components/icons/MapIcon';
 import { NavPositionUpdate, NavState } from '../../types/navigation';
 import { computeBearing, offsetPosition } from '../../utils/geo';
 import { NAV_ZOOM, NAV_PITCH, NAV_FOLLOW_OFFSET_M, HEADING_SMOOTH_ALPHA, BEARING_MIN_DIST_M } from '../../constants/navigation';
@@ -37,6 +43,8 @@ const JUMP_LAT_DELTA = 0.06;
 const MAP_HEIGHT_RATIO        = 0.45;
 const MAP_HEIGHT_DETAIL_RATIO = 0.28;
 const MAP_HEIGHT_NAV_RATIO    = 0.55;
+const MAP_HEIGHT_NAVBAR_RATIO = 0.78;
+const MAP_HEIGHT_LIST_RATIO   = 0.44;
 
 const MAP_ANIM_MS              = 300;
 const REGION_DEBOUNCE_MS       = 400;
@@ -53,7 +61,9 @@ export default function MapScreen() {
   const mapHeightFull   = Math.round(screenH * MAP_HEIGHT_RATIO);
   const mapHeightDetail = Math.round(screenH * MAP_HEIGHT_DETAIL_RATIO);
   const mapHeightNav    = Math.round(screenH * MAP_HEIGHT_NAV_RATIO);
-  const mapHeightAnim   = useRef(new Animated.Value(mapHeightFull)).current;
+  const mapHeightNavBar = Math.round(screenH * MAP_HEIGHT_NAVBAR_RATIO);
+  const mapHeightList   = Math.round(screenH * MAP_HEIGHT_LIST_RATIO);
+  const mapHeightAnim   = useRef(new Animated.Value(mapHeightNavBar)).current;
   const mapRef          = useRef<MapView>(null);
 
   const animateMap = (toValue: number) =>
@@ -79,7 +89,7 @@ export default function MapScreen() {
   }, [coords]);
 
   const handleRegionChangeComplete = (region: Region) => {
-    if (selectedPin || isRoutePickerMode || isRouteMode) return;
+    if (selectedPin || isRoutePickerMode || isRouteMode || isAddShopMode) return;
     clearTimeout(regionTimer.current);
     regionTimer.current = setTimeout(() => setMapRegion(region), REGION_DEBOUNCE_MS);
   };
@@ -97,6 +107,24 @@ export default function MapScreen() {
   const [navStarted,        setNavStarted]         = useState(false);
   const [muted,             setMuted]              = useState(false);
   const [arrivalTime,       setArrivalTime]        = useState<Date>(() => new Date());
+  const [isListOpen,        setIsListOpen]         = useState(false);
+  const [isAddShopMode,     setIsAddShopMode]      = useState(false);
+  const [addShopQuery,      setAddShopQuery]       = useState('');
+  const [addShopResults,    setAddShopResults]     = useState<PlaceResult[]>([]);
+  const [addShopSearching,  setAddShopSearching]   = useState(false);
+  const [selectedAddShop,   setSelectedAddShop]    = useState<PlaceResult | null>(null);
+  const [addShopDesc,       setAddShopDesc]        = useState('');
+  const [addShopSubmitting, setAddShopSubmitting]  = useState(false);
+
+  useEffect(() => {
+    if (isAddShopMode && addShopResults.length > 0 && !selectedAddShop) {
+      const allCoords = addShopResults.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
+      mapRef.current?.fitToCoordinates(allCoords, {
+        edgePadding: { top: 40, bottom: 40, left: 40, right: 40 },
+        animated: true,
+      });
+    }
+  }, [addShopResults, selectedAddShop, isAddShopMode]);
 
   // Follow-camera state — refs shadow state so callbacks don't go stale
   const [followCamera,   setFollowCamera]   = useState(true);
@@ -217,18 +245,19 @@ export default function MapScreen() {
   };
 
   const handleEnterRoutePicker = () => {
-    if (selectedPin) {
-      setSelectedPin(null);
-      animateMap(mapHeightFull);
-    }
+    if (selectedPin) setSelectedPin(null);
+    setIsListOpen(false);
+
     setIsRoutePickerMode(true);
     setPickerSelectedId(null);
+    animateMap(mapHeightFull);
     findSuggestions(shops, coords, bounds, authUsername, authUserId);
   };
 
   const handleExitRoutePicker = () => {
     setIsRoutePickerMode(false);
     setPickerSelectedId(null);
+    animateMap(mapHeightNavBar);
     clearRoute();
   };
 
@@ -280,7 +309,7 @@ export default function MapScreen() {
     setCameraDetached(false);
     smoothedHeadingRef.current = -1;
     lastPositionRef.current = null;
-    animateMap(mapHeightFull);
+    animateMap(mapHeightNavBar);
     clearRoute();
     if (coords) {
       mapRef.current?.animateCamera(
@@ -344,13 +373,15 @@ export default function MapScreen() {
   const handleShopSelect = (shop: MockShop) => {
     if (selectedPin === shop.id) { handleDeselect(); return; }
     setSelectedPin(shop.id);
+    setIsListOpen(false);
+
     animateMap(mapHeightDetail);
     mapRef.current?.animateToRegion({ latitude: shop.latitude, longitude: shop.longitude, ...ZOOM_DELTA }, SELECT_ANIM_MS);
   };
 
   const handleDeselect = () => {
     setSelectedPin(null);
-    animateMap(mapHeightFull);
+    animateMap(mapHeightNavBar);
     const center = mapRegion ?? (coords ? { ...coords, ...LIST_DELTA } : null);
     if (center) {
       mapRef.current?.animateToRegion(
@@ -366,6 +397,90 @@ export default function MapScreen() {
     setSelectedPin(null);
     animateMap(mapHeightFull);
     setIsRouteMode(true);
+  };
+
+  const handleToggleList = () => {
+    const next = !isListOpen;
+    setIsListOpen(next);
+    animateMap(next ? mapHeightList : mapHeightNavBar);
+  };
+
+  const addShopDebounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  const handleEnterAddShop = () => {
+    if (selectedPin) setSelectedPin(null);
+    setIsListOpen(false);
+    setIsAddShopMode(true);
+    animateMap(mapHeightNavBar);
+  };
+
+  const handleExitAddShop = () => {
+    setIsAddShopMode(false);
+    setAddShopQuery('');
+    setAddShopResults([]);
+    setAddShopSearching(false);
+    setSelectedAddShop(null);
+    setAddShopDesc('');
+    clearTimeout(addShopDebounceRef.current);
+    animateMap(mapHeightNavBar);
+  };
+
+  const handleAddShopSearch = useCallback((text: string) => {
+    setAddShopQuery(text);
+    setSelectedAddShop(null);
+    setAddShopDesc('');
+    animateMap(mapHeightNavBar);
+    clearTimeout(addShopDebounceRef.current);
+
+    if (text.trim().length < 2) {
+      setAddShopResults([]);
+      setAddShopSearching(false);
+      return;
+    }
+
+    setAddShopSearching(true);
+    addShopDebounceRef.current = setTimeout(async () => {
+      try {
+        const places = await textSearch(text, coords ?? null);
+        setAddShopResults(places);
+      } catch {
+        setAddShopResults([]);
+      } finally {
+        setAddShopSearching(false);
+      }
+    }, AUTOCOMPLETE_DEBOUNCE_MS);
+  }, [coords, mapHeightNavBar]);
+
+  const handleSelectAddShop = (place: PlaceResult) => {
+    Keyboard.dismiss();
+    setSelectedAddShop(place);
+    animateMap(mapHeightDetail);
+    mapRef.current?.animateToRegion(
+      { latitude: place.latitude, longitude: place.longitude, ...ZOOM_DELTA },
+      SELECT_ANIM_MS,
+    );
+  };
+
+  const handleDeselectAddShop = () => {
+    setSelectedAddShop(null);
+    setAddShopDesc('');
+    animateMap(mapHeightNavBar);
+    if (addShopResults.length > 0) {
+      const allCoords = addShopResults.map(p => ({ latitude: p.latitude, longitude: p.longitude }));
+      mapRef.current?.fitToCoordinates(allCoords, {
+        edgePadding: { top: 40, bottom: 40, left: 40, right: 40 },
+        animated: true,
+      });
+    }
+  };
+
+  const handleSubmitAddShop = async () => {
+    if (!selectedAddShop) return;
+    Keyboard.dismiss();
+    setAddShopSubmitting(true);
+    // TODO: POST /shops — send selectedAddShop.id, name, address, lat, lng, addShopDesc, selectedNiche
+    setAddShopSubmitting(false);
+    handleExitAddShop();
   };
 
   const pickerPreviewRoute = isRoutePickerMode && suggestions.length > 0
@@ -400,30 +515,41 @@ export default function MapScreen() {
       ) : (
         <InkHeader>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+            <TouchableOpacity onPress={isAddShopMode ? handleExitAddShop : () => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
               <Text style={styles.backText}>←</Text>
             </TouchableOpacity>
-            <HeaderTitle style={styles.headerTitle}>NICHE</HeaderTitle>
-            <NicheChip label={nicheLabel} onPress={() => navigation.navigate('NichePicker')} />
+            <HeaderTitle style={styles.headerTitle}>{isAddShopMode ? 'ADD SHOP' : 'NICHE'}</HeaderTitle>
+            {!isAddShopMode && <NicheChip label={nicheLabel} onPress={() => navigation.navigate('NichePicker')} />}
           </View>
         </InkHeader>
       )}
 
       {!isRoutePickerMode && !isRouteMode && (
         <View style={styles.searchWrapper}>
-          <SearchBar
-            placeholder="Search shops or locations…"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmit={jumpToPlace}
-          />
-          {showDropdown && (
-            <SearchDropdown
-              shopResults={shopSuggestions}
-              placeResults={placeSuggestions}
-              onSelectShop={shop => { clearSearch(); handleShopSelect(shop); }}
-              onSelectPlace={place => { clearSearch(); jumpToPlace(place.description); }}
+          {isAddShopMode ? (
+            <SearchBar
+              placeholder="Search shop name…"
+              value={addShopQuery}
+              onChangeText={handleAddShopSearch}
+              onSubmit={() => {}}
             />
+          ) : (
+            <>
+              <SearchBar
+                placeholder="Search shops or locations…"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmit={jumpToPlace}
+              />
+              {showDropdown && (
+                <SearchDropdown
+                  shopResults={shopSuggestions}
+                  placeResults={placeSuggestions}
+                  onSelectShop={shop => { clearSearch(); handleShopSelect(shop); }}
+                  onSelectPlace={place => { clearSearch(); jumpToPlace(place.description); }}
+                />
+              )}
+            </>
           )}
         </View>
       )}
@@ -447,7 +573,7 @@ export default function MapScreen() {
                 if (navStarted && followCameraRef.current) setCameraDetached(true);
               }}
             >
-              {!isRouteMode && !isRoutePickerMode && shops.map((shop, index) => {
+              {!isRouteMode && !isRoutePickerMode && !isAddShopMode && shops.map((shop, index) => {
                 const isSelected = selectedPin === shop.id;
                 return (
                   <Marker
@@ -462,6 +588,19 @@ export default function MapScreen() {
                   </Marker>
                 );
               })}
+
+              {isAddShopMode && addShopResults.map((place, index) => (
+                <Marker
+                  key={`addshop-${place.id}`}
+                  coordinate={{ latitude: place.latitude, longitude: place.longitude }}
+                  onPress={() => handleSelectAddShop(place)}
+                  anchor={{ x: 0.5, y: 1 }}
+                  tracksViewChanges={false}
+                  opacity={selectedAddShop && selectedAddShop.id !== place.id ? 0.3 : 1}
+                >
+                  <MapMarker shop={place} index={index} selected={selectedAddShop?.id === place.id} />
+                </Marker>
+              ))}
 
               {isRouteMode && activeRouteCoords && (
                 <>
@@ -507,12 +646,6 @@ export default function MapScreen() {
           <Text style={styles.locationText}>{locationLabel || 'Locating…'}</Text>
         </View>
 
-        {!isRouteMode && !isRoutePickerMode && (
-          <TouchableOpacity style={styles.routeBtn} onPress={handleEnterRoutePicker} activeOpacity={0.85}>
-            <Text style={styles.routeBtnText}>FIND ROUTES →</Text>
-          </TouchableOpacity>
-        )}
-
         {navStarted && (
           <View style={styles.navCameraControls}>
             {cameraDetached && (
@@ -555,7 +688,34 @@ export default function MapScreen() {
                 navProgress={navSession.progress}
                 isNavigating={navStarted}
               />
-            : <ShopList shops={shops} nicheLabel={nicheLabel} onSelectShop={handleShopSelect} />
+            : isListOpen
+              ? <ShopList shops={shops} nicheLabel={nicheLabel} onSelectShop={handleShopSelect} onBack={handleToggleList} />
+              : isAddShopMode && selectedAddShop
+                ? <AddShopPanel
+                    place={selectedAddShop}
+                    description={addShopDesc}
+                    onChangeDescription={setAddShopDesc}
+                    submitting={addShopSubmitting}
+                    onSubmit={handleSubmitAddShop}
+                    onBack={handleDeselectAddShop}
+                  />
+                : (
+                  <View style={styles.navBarArea}>
+                    {isAddShopMode && addShopSearching && (
+                      <View style={styles.addShopLoadingRow}>
+                        <ActivityIndicator color={colors.ink} size="small" />
+                      </View>
+                    )}
+                    <MapNavBar items={isAddShopMode ? [
+                      { icon: <MapIcon size={22} color={colors.white} />, onPress: handleExitAddShop, active: true },
+                      { icon: <AddShopIcon size={22} color={colors.ink} />, onPress: () => {} },
+                    ] : [
+                      { icon: <ListIcon size={22} color={isListOpen ? colors.white : colors.ink2} />, onPress: handleToggleList, active: isListOpen },
+                      { icon: <AddShopIcon size={22} color={colors.ink} />, onPress: handleEnterAddShop },
+                      { icon: <RouteIcon size={22} color={colors.ink} />, onPress: handleEnterRoutePicker },
+                    ]} />
+                  </View>
+                )
       }
     </View>
   );
@@ -620,27 +780,15 @@ const styles = StyleSheet.create({
     zIndex: 40,
   },
   locationDot: { width: 6, height: 6 },
+  navBarArea: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
   locationText: {
     fontFamily: fonts.mono,
     fontSize: 9,
     letterSpacing: 1.5,
     color: colors.ink,
-  },
-  routeBtn: {
-    position: 'absolute',
-    bottom: 14,
-    right: 14,
-    backgroundColor: colors.ink,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    transform: [{ rotate: '0.4deg' }],
-    zIndex: 40,
-  },
-  routeBtnText: {
-    fontFamily: fonts.bebas,
-    fontSize: 14,
-    letterSpacing: 1.5,
-    color: colors.white,
   },
   navCameraControls: {
     position: 'absolute',
@@ -662,5 +810,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: colors.ink,
     lineHeight: 20,
+  },
+  addShopLoadingRow: {
+    alignItems: 'center',
+    paddingVertical: 12,
   },
 });

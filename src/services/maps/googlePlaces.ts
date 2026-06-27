@@ -89,6 +89,50 @@ export async function searchNearby(box: BoundingBox, count: number): Promise<Pla
   }));
 }
 
+export async function textSearch(
+  query: string,
+  location: { latitude: number; longitude: number } | null,
+  radiusMeters: number = 50_000,
+): Promise<PlaceResult[]> {
+  const key = apiKey();
+
+  const body: Record<string, unknown> = {
+    textQuery: query,
+    maxResultCount: 10,
+  };
+
+  if (location) {
+    body.locationBias = {
+      circle: {
+        center: { latitude: location.latitude, longitude: location.longitude },
+        radius: radiusMeters,
+      },
+    };
+  }
+
+  const { data } = await axios.post(
+    `${PLACES_BASE}/places:searchText`,
+    body,
+    {
+      headers: {
+        'X-Goog-Api-Key': key,
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.shortFormattedAddress,places.photos,places.location',
+      },
+    },
+  );
+
+  return (data.places ?? []).map((p: RawPlace): PlaceResult => ({
+    id: p.id,
+    name: p.displayName?.text ?? p.id,
+    address: p.shortFormattedAddress ?? '',
+    latitude: p.location?.latitude ?? 0,
+    longitude: p.location?.longitude ?? 0,
+    photoUrl: p.photos?.[0]?.name
+      ? `${PLACES_BASE}/${p.photos[0].name}/media?maxWidthPx=${PHOTO_MAX_WIDTH}&key=${key}`
+      : undefined,
+  }));
+}
+
 export async function autocomplete(query: string): Promise<PlaceSuggestion[]> {
   const key = apiKey();
   const url = `${AUTOCOMPLETE_BASE}/autocomplete/json?input=${encodeURIComponent(query)}&types=geocode&key=${key}`;

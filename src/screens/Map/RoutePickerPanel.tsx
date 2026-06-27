@@ -30,7 +30,7 @@ export default function RoutePickerPanel({ routes, loading, selectedId, onSelect
           <Subtitle size={9} color="rgba(240,237,230,0.6)" style={styles.nearYou}>NEAR YOU</Subtitle>
         </View>
         <TouchableOpacity onPress={onClose} style={styles.closeBtn} activeOpacity={0.7}>
-          <Text style={styles.closeBtnText}>✕</Text>
+          <Text style={styles.closeBtnText}>←</Text>
         </TouchableOpacity>
       </View>
 

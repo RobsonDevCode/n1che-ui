@@ -5,20 +5,25 @@ import { MockShop } from './mockShops';
 import ShopCard from '../../components/ShopCard/ShopCard';
 import Panel from '../../components/common/Panel';
 import Title from '../../components/common/Title';
+import Button from '../../components/common/Button';
 
 interface Props {
   shops: MockShop[];
   nicheLabel: string;
   onSelectShop: (shop: MockShop) => void;
+  onBack: () => void;
 }
 
-export default function ShopList({ shops, nicheLabel, onSelectShop }: Props) {
+export default function ShopList({ shops, nicheLabel, onSelectShop, onBack }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
     <Panel variant="paper">
       <View style={styles.header}>
         <Title size={20} color={colors.ink}>{shops.length} SHOPS NEARBY</Title>
+        <Button variant="icon" onPress={onBack} style={styles.backBtn}>
+          <Text style={styles.backBtnText}>←</Text>
+        </Button>
       </View>
 
       {shops.length === 0 ? (
@@ -46,12 +51,24 @@ export default function ShopList({ shops, nicheLabel, onSelectShop }: Props) {
 
 const styles = StyleSheet.create({
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: colors.white,
     borderBottomWidth: 2,
     borderBottomColor: colors.ink,
     flexShrink: 0,
+  },
+  backBtn: {
+    padding: 4,
+  },
+  backBtnText: {
+    fontFamily: fonts.oswald,
+    fontSize: 20,
+    color: colors.ink,
+    lineHeight: 22,
   },
   list: { flex: 1 },
   empty: {
