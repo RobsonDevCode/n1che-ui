@@ -27,6 +27,12 @@ struct ShopDisplay: Identifiable {
     var photoUrl: String? { shop.photoUrl }
     var addedByUsername: String { shop.addedByUsername }
 
+    // "address · 0.2mi", or just the address before distance is known
+    var addressLine: String {
+        guard let distanceMi else { return address }
+        return "\(address) · \(StringUtils.formatMiles(distanceMi))"
+    }
+
     init(shop: Shop, distanceMi: Double? = nil, isOpen: Bool = false, closingTime: String = "", palIdx: Int? = nil) {
         self.shop = shop
         self.distanceMi = distanceMi

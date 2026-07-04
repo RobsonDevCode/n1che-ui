@@ -140,16 +140,12 @@ struct RouteCardView: View {
                         .kerning(Self.stopNameKerning)
                         .foregroundStyle(fg)
                     if i < visibleStops.count - 1 {
-                        Text("›")
-                            .font(.system(size: Self.arrowFontSize))
-                            .foregroundStyle(muted)
+                        IconView(icon: .chevronRight, size: Self.arrowFontSize, color: muted)
                     }
                 }
             }
             if hasMore {
-                Text("›")
-                    .font(.system(size: Self.arrowFontSize))
-                    .foregroundStyle(muted)
+                IconView(icon: .chevronRight, size: Self.arrowFontSize, color: muted)
                 Text("…")
                     .font(.mono(Self.stopNameFontSize))
                     .foregroundStyle(muted)

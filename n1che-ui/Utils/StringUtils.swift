@@ -8,6 +8,14 @@ enum StringUtils {
         String(format: "%.1fmi", value)
     }
 
+    static func formatMeters(_ meters: Double) -> String {
+        guard meters.isFinite else { return "" }
+        if meters >= 1000 {
+            return String(format: "%.1f KM", meters / 1000)
+        }
+        return "\(Int(meters.rounded())) M"
+    }
+
     // First word of a name, truncated with a trailing "." when too long
     static func shortName(_ name: String) -> String {
         let first = name

@@ -40,7 +40,7 @@ struct ShopCardView: View {
                         .fontWeight(index % 2 == 0 ? .bold : .regular)
                         .foregroundStyle(Color.inkCol)
                         .lineLimit(1)
-                    Text(addressLine)
+                    Text(shop.addressLine)
                         .font(.special(FontSize.caption))
                         .foregroundStyle(Color.grey)
                         .lineLimit(1)
@@ -71,10 +71,5 @@ struct ShopCardView: View {
             }
         }
         .buttonStyle(.plain)
-    }
-
-    private var addressLine: String {
-        guard let distance = shop.distanceMi else { return shop.address }
-        return "\(shop.address) · \(StringUtils.formatMiles(distance))"
     }
 }
