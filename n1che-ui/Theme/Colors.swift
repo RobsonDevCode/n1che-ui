@@ -13,6 +13,8 @@ extension Color {
     static let pinColors: [Color]  = Palette.pinHexValues.map { Color(hex: $0) }
 
     static let openGreen = Color(hex: "#4CAF50")
+    static let cardBg    = Color(hex: "#F8F7F3")
+    static let tackShaft = Color(hex: "#5A5A5A").opacity(0.7)
 
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

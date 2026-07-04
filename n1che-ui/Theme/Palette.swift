@@ -8,6 +8,7 @@ enum Palette {
     static let pinHexValues: [String] = [
         "#AE1C14", "#1A4E8C", "#1A6330", "#7A4010",
     ]
+    static let popHex = "#000000"
     static var polCount: Int { polHexValues.count }
     static var pinCount: Int { pinHexValues.count }
 }
