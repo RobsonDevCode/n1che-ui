@@ -13,8 +13,17 @@ extension Color {
     static let pinColors: [Color]  = Palette.pinHexValues.map { Color(hex: $0) }
 
     static let openGreen = Color(hex: "#4CAF50")
+    static let liveGreen = Color(hex: "#3AD07A")
     static let cardBg    = Color(hex: "#F8F7F3")
     static let tackShaft = Color(hex: "#5A5A5A").opacity(0.7)
+
+    static let markerPinColors: [(face: Color, edge: Color)] = [
+        (Color(hex: "#C43A2F"), Color(hex: "#7A1F17")),
+        (Color(hex: "#2A5E8C"), Color(hex: "#173A55")),
+        (Color(hex: "#2F7A4A"), Color(hex: "#1A4A2A")),
+        (Color(hex: "#B8742A"), Color(hex: "#6E4214")),
+        (Color(hex: "#8A2840"), Color(hex: "#4D1424")),
+    ]
 
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
