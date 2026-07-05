@@ -22,7 +22,6 @@ struct NavigationPromptView: View {
     private static let mainRowGap: CGFloat = 14
     private static let mainRowBottomGap: CGFloat = 8
     private static let arrowBoxSize: CGFloat = 44
-    private static let arrowFontSize: CGFloat = 24
     private static let instructionKerning: CGFloat = 0.5
     private static let instructionLineSpacing: CGFloat = 2
     private static let thenRowGap: CGFloat = 8
@@ -75,7 +74,7 @@ struct NavigationPromptView: View {
 
     private var mainRow: some View {
         HStack(spacing: Self.mainRowGap) {
-            IconView(icon: progress.currentManeuver.icon, size: Self.arrowFontSize)
+            IconView(icon: progress.currentManeuver.icon, size: IconSize.xl)
                 .frame(width: Self.arrowBoxSize, height: Self.arrowBoxSize)
                 .background(Color.paper)
             Text(progress.currentInstruction.uppercased())

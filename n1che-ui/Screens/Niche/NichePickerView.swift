@@ -10,9 +10,8 @@ struct NichePickerView: View {
     private static let stepKerning: CGFloat = 2
     private static let stepOpacity: Double = 0.4
     private static let stepBottomGap: CGFloat = 6
-    private static let titleFontSize: CGFloat = 46
     private static let titleKerning: CGFloat = 1.5
-    private static let taglineFontSize: CGFloat = 13
+    private static let taglineFontSize: CGFloat = FontSize.small
     private static let taglineOpacity: Double = 0.5
     private static let taglineMaxWidth: CGFloat = 120
     private static let separatorHeight: CGFloat = 4
@@ -25,7 +24,7 @@ struct NichePickerView: View {
     private static let footerBorderHeight: CGFloat = 3
 
     private var selectedNiche: Niche? {
-        allNiches.first { $0.id == selectedID }
+        Niche.all.first { $0.id == selectedID }
     }
 
     var body: some View {
@@ -37,7 +36,7 @@ struct NichePickerView: View {
                     .frame(height: Self.separatorHeight)
                 ScrollView {
                     VStack(spacing: Self.rowGap) {
-                        ForEach(Array(allNiches.enumerated()), id: \.element.id) { index, niche in
+                        ForEach(Array(Niche.all.enumerated()), id: \.element.id) { index, niche in
                             NicheRowView(
                                 niche: niche,
                                 index: index,
@@ -73,7 +72,7 @@ struct NichePickerView: View {
             HStack(alignment: .bottom) {
                 HeaderTitleView(
                     text: "YOUR\nNICHE",
-                    size: Self.titleFontSize,
+                    size: FontSize.h1,
                     kerning: Self.titleKerning
                 )
                 Spacer()

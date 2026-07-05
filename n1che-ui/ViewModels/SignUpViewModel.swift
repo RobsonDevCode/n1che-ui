@@ -1,12 +1,12 @@
 import Foundation
 
+@MainActor
 @Observable
 final class SignUpViewModel {
     enum Step {
         case register, confirm
     }
 
-    static let codeLength = 6
     private static let minUsernameLength = 3
 
     var step: Step = .register
@@ -17,19 +17,15 @@ final class SignUpViewModel {
     var errorMessage = ""
     var isLoading = false
     var code = "" {
-        didSet {
-            if code.count > Self.codeLength {
-                code = String(code.prefix(Self.codeLength))
-            }
-        }
+        didSet { code = StringUtils.truncated(code, maxLength: CognitoService.codeLength) }
     }
 
     private let cognito = CognitoService()
 
     func submitRegistration() async {
         errorMessage = ""
-        let email = email.trimmingCharacters(in: .whitespaces)
-        let username = username.trimmingCharacters(in: .whitespaces)
+        email = email.trimmingCharacters(in: .whitespaces)
+        username = username.trimmingCharacters(in: .whitespaces)
         guard !email.isEmpty, !username.isEmpty, !password.isEmpty, !confirmPassword.isEmpty else {
             errorMessage = "Please fill in all fields."
             return

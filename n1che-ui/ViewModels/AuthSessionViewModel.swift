@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 @Observable
 final class AuthSessionViewModel {
     private let cognito = CognitoService()

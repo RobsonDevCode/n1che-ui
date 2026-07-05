@@ -64,11 +64,7 @@ struct ShopCardView: View {
             .padding(.horizontal, Self.hPadding)
             .padding(.vertical, Self.vPadding)
             .background(index % 2 == 0 ? Color.white : Color.paper)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(Color.grey2)
-                    .frame(height: Self.bottomBorderWidth)
-            }
+            .bottomBorder(height: Self.bottomBorderWidth)
         }
         .buttonStyle(.plain)
     }

@@ -16,6 +16,10 @@ enum StringUtils {
         return "\(Int(meters.rounded())) M"
     }
 
+    static func truncated(_ value: String, maxLength: Int) -> String {
+        value.count > maxLength ? String(value.prefix(maxLength)) : value
+    }
+
     static func isEmailAddress(_ value: String) -> Bool {
         value.range(of: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", options: .regularExpression) != nil
     }

@@ -3,7 +3,7 @@ import SwiftUI
 struct AuthErrorText: View {
     let message: String
 
-    private static let fontSize: CGFloat = 13
+    private static let fontSize: CGFloat = FontSize.small
 
     var body: some View {
         Text(message)

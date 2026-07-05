@@ -3,4 +3,5 @@ enum Route: Hashable {
     case map
     case logIn
     case signUp
+    case forgotPassword
 }

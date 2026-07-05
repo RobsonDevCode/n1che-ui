@@ -35,10 +35,6 @@ struct ReviewCardView: View {
         }
         .padding(.horizontal, Self.hPadding)
         .padding(.vertical, Self.vPadding)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.grey2)
-                .frame(height: Self.bottomBorderWidth)
-        }
+        .bottomBorder(height: Self.bottomBorderWidth)
     }
 }

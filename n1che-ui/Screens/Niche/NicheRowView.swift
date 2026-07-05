@@ -18,6 +18,8 @@ struct NicheRowView: View {
     private static let subKerning: CGFloat = 1.5
     private static let descTopGap: CGFloat = 3
     private static let pressedOpacity: Double = 0.85
+    private static let selectedSubOpacity: Double = 0.5
+    private static let selectedDescOpacity: Double = 0.6
 
     var body: some View {
         Button(action: action) {
@@ -31,16 +33,16 @@ struct NicheRowView: View {
                         Text("(\(niche.sub))".uppercased())
                             .font(.mono(FontSize.label))
                             .kerning(Self.subKerning)
-                            .foregroundStyle(isSelected ? Color.white.opacity(0.5) : .grey)
+                            .foregroundStyle(isSelected ? Color.white.opacity(Self.selectedSubOpacity) : .grey)
                     }
                     Text(niche.desc)
                         .font(.special(FontSize.caption))
-                        .foregroundStyle(isSelected ? Color.white.opacity(0.6) : .grey)
+                        .foregroundStyle(isSelected ? Color.white.opacity(Self.selectedDescOpacity) : .grey)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Text(niche.count.formatted())
                     .font(.oswald(FontSize.small))
-                    .foregroundStyle(isSelected ? Color.white.opacity(0.5) : .grey2)
+                    .foregroundStyle(isSelected ? Color.white.opacity(Self.selectedSubOpacity) : .grey2)
             }
             .padding(.vertical, Self.vPadding)
             .padding(.leading, Self.selectionBarWidth + Self.hPadding)

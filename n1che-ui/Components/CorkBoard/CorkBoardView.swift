@@ -43,7 +43,7 @@ struct CorkBoardView: View {
                         VStack(spacing: -Self.tackOverlap) {
                             ThumbtackView(index: i, size: Self.tackSize)
                                 .zIndex(1)
-                            PolaroidView(shop: shops[i % shops.count], size: .home, index: i)
+                            PolaroidView(shop: shops[i % shops.count], size: .home)
                         }
                         .rotationEffect(.degrees(pin.rot))
                         .offset(

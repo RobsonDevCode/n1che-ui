@@ -1,13 +1,7 @@
 import SwiftUI
 
-enum SearchBarVariant {
-    case `default`, ink
-}
-
 struct SearchBarView: View {
-    private static let iconSize: CGFloat    = 18
-    private static let inputSize: CGFloat   = 13
-    private static let clearSize: CGFloat   = 12
+    private static let inputSize: CGFloat   = FontSize.small
     private static let hPadding: CGFloat    = 16
     private static let vPadding: CGFloat    = 10
     private static let itemSpacing: CGFloat = 10
@@ -20,18 +14,20 @@ struct SearchBarView: View {
     var onSubmit: (String) -> Void = { _ in }
     var onClear: (() -> Void)? = nil
 
+    private static let inkContentOpacity: Double = 0.5
+    private static let inkBorderOpacity: Double  = 0.2
+
     var body: some View {
         let isInk = variant == .ink
+        let mutedColor = isInk ? Color.paper.opacity(Self.inkContentOpacity) : .grey
 
         HStack(spacing: Self.itemSpacing) {
             if loading {
                 ProgressView()
-                    .tint(isInk ? Color.paper.opacity(0.5) : .grey)
-                    .frame(width: Self.iconSize, height: Self.iconSize)
+                    .tint(mutedColor)
+                    .frame(width: IconSize.md, height: IconSize.md)
             } else {
-                Text("⌕")
-                    .font(.special(Self.iconSize))
-                    .foregroundStyle(isInk ? Color.paper.opacity(0.5) : .grey)
+                IconView(icon: .search, size: IconSize.md, color: mutedColor)
             }
 
             TextField(placeholder, text: $value)
@@ -45,19 +41,16 @@ struct SearchBarView: View {
 
             if !value.isEmpty, let onClear {
                 Button(action: onClear) {
-                    Text("✕")
-                        .font(.mono(Self.clearSize))
-                        .foregroundStyle(isInk ? Color.paper.opacity(0.5) : .grey)
+                    IconView(icon: .close, size: IconSize.sm, color: mutedColor)
                 }
             }
         }
         .padding(.horizontal, Self.hPadding)
         .padding(.vertical, Self.vPadding)
         .background(isInk ? Color.inkCol : .white)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(isInk ? Color.paper.opacity(0.2) : .inkCol)
-                .frame(height: Self.borderWidth)
-        }
+        .bottomBorder(
+            isInk ? Color.paper.opacity(Self.inkBorderOpacity) : .inkCol,
+            height: Self.borderWidth
+        )
     }
 }

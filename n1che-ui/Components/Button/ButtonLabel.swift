@@ -10,6 +10,19 @@ struct ButtonLabel: View {
     private static let iconGap: CGFloat = 6
     private static let iconSizeRatio: CGFloat = 0.75
 
+    private static let primaryFontSize: CGFloat = 20
+    private static let dangerFontSize: CGFloat  = 18
+    private static let paperFontSize: CGFloat   = 16
+    private static let pillFontSize: CGFloat    = 14
+    private static let compactFontSize: CGFloat = 10
+
+    private static let ctaKerning: CGFloat     = 2.5
+    private static let primaryKerning: CGFloat = 2.4
+    private static let wideKerning: CGFloat    = 2.0
+    private static let narrowKerning: CGFloat  = 1.5
+
+    private static let ghostTextOpacity: Double = 0.5
+
     var body: some View {
         HStack(spacing: Self.iconGap) {
             if let leadingIcon {
@@ -27,34 +40,31 @@ struct ButtonLabel: View {
 
     private var font: Font {
         switch variant {
-        case .outline, .primary, .action, .paper, .cta, .danger, .pill, .pillFlat:
+        case .outline, .primary, .paper, .cta, .danger, .pill, .pillFlat:
             return .bebas(fontSize)
         case .ghost, .chip, .icon:
             return .mono(fontSize)
-        case .link:
-            return .special(fontSize)
         }
     }
 
     private var fontSize: CGFloat {
         switch variant {
-        case .primary, .cta:       return 20
-        case .action, .paper:      return 16
-        case .danger:              return 18
-        case .pill, .pillFlat:     return 14
-        case .ghost, .chip, .icon: return 10
-        case .link:                return FontSize.small
+        case .primary, .cta:       return Self.primaryFontSize
+        case .paper:               return Self.paperFontSize
+        case .danger:              return Self.dangerFontSize
+        case .pill, .pillFlat:     return Self.pillFontSize
+        case .ghost, .chip, .icon: return Self.compactFontSize
         default:                   return FontSize.h3
         }
     }
 
     private var kerning: CGFloat {
         switch variant {
-        case .primary:                        return 2.4
-        case .cta:                            return 2.5
-        case .outline, .paper:               return 2.0
-        case .action, .danger:               return 1.5
-        case .ghost, .chip, .pill, .pillFlat: return 1.5
+        case .primary:                        return Self.primaryKerning
+        case .cta:                            return Self.ctaKerning
+        case .outline, .paper:                return Self.wideKerning
+        case .danger:                         return Self.narrowKerning
+        case .ghost, .chip, .pill, .pillFlat: return Self.narrowKerning
         default:                              return 0
         }
     }
@@ -62,14 +72,13 @@ struct ButtonLabel: View {
     private var color: Color {
         if active {
             switch variant {
-            case .action, .chip, .pill, .pillFlat: return .white
+            case .chip, .pill, .pillFlat: return .white
             default: break
             }
         }
         switch variant {
         case .primary, .danger: return .white
-        case .ghost:            return .white.opacity(0.5)
-        case .link:             return .ink2
+        case .ghost:            return .white.opacity(Self.ghostTextOpacity)
         default:                return .inkCol
         }
     }

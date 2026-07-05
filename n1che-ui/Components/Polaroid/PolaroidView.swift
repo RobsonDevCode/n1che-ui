@@ -3,15 +3,37 @@ import SwiftUI
 struct PolaroidView: View {
     let shop: ShopDisplay
     let size: PolaroidSize
-    let index: Int
     var selected: Bool = false
 
-    private var bg: Color { Color.polPalette[index % Color.polPalette.count] }
+    private static let borderWidth: CGFloat = 1
+    private static let initialOpacity: Double = 0.16
+    private static let halftoneOpacity: Double = 0.13
+    private static let halftoneDotRadius: CGFloat = 0.8
+    private static let halftoneSpacing: CGFloat = 4
+    private static let vignetteOpacity: Double = 0.20
+    private static let scanLineOpacity: Double = 0.07
+    private static let scanLineHeight: CGFloat = 1
+    private static let captionGap: CGFloat = 1
+    private static let captionHPadding: CGFloat = 4
+    private static let addressFontSize: CGFloat = 6.5
+    private static let selectedDotSize: CGFloat = 4
+
+    private static let mapShadowOpacity: Double = 0.65
+    private static let homeShadowOpacity: Double = 0.45
+    private static let homeShadowOpacitySelected: Double = 0.8
+    private static let mapShadowRadius: CGFloat = 6
+    private static let homeShadowRadius: CGFloat = 22
+    private static let mapShadowOffset = CGSize(width: 1, height: 3)
+    private static let homeShadowOffset = CGSize(width: 3, height: 8)
+
+    private var bg: Color { Color.polPalette[shop.palIdx % Color.polPalette.count] }
     private var initial: String { String(shop.name.prefix(1)).uppercased() }
 
-    private var shadowOpacity: Double { size == .map ? 0.65 : (selected ? 0.8 : 0.45) }
-    private var shadowRadius: CGFloat  { size == .map ? 6 : 22 }
-    private var shadowOffset: CGSize   { size == .map ? CGSize(width: 1, height: 3) : CGSize(width: 3, height: 8) }
+    private var shadowOpacity: Double {
+        size == .map ? Self.mapShadowOpacity : (selected ? Self.homeShadowOpacitySelected : Self.homeShadowOpacity)
+    }
+    private var shadowRadius: CGFloat { size == .map ? Self.mapShadowRadius : Self.homeShadowRadius }
+    private var shadowOffset: CGSize { size == .map ? Self.mapShadowOffset : Self.homeShadowOffset }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -25,7 +47,7 @@ struct PolaroidView: View {
         .background(Color.cardBg)
         .overlay {
             if size == .map {
-                Rectangle().stroke(Color.inkCol, lineWidth: 1)
+                Rectangle().stroke(Color.inkCol, lineWidth: Self.borderWidth)
             }
         }
         // Flatten before shadowing so glyphs don't cast individual shadows
@@ -43,7 +65,7 @@ struct PolaroidView: View {
             bg
             Text(initial)
                 .font(.bebas(size.initialFontSize))
-                .foregroundStyle(Color.white.opacity(0.16))
+                .foregroundStyle(Color.white.opacity(Self.initialOpacity))
             if let photoUrl = shop.photoUrl, let url = URL(string: photoUrl) {
                 AsyncImage(url: url) { image in
                     image
@@ -55,9 +77,17 @@ struct PolaroidView: View {
                     Color.clear
                 }
             }
-            HalftonePatternView(dotColor: .white.opacity(0.13), dotRadius: 0.8, spacing: 4)
-            LinearGradient(colors: [.clear, .black.opacity(0.20)], startPoint: .top, endPoint: .bottom)
-                .allowsHitTesting(false)
+            HalftonePatternView(
+                dotColor: .white.opacity(Self.halftoneOpacity),
+                dotRadius: Self.halftoneDotRadius,
+                spacing: Self.halftoneSpacing
+            )
+            LinearGradient(
+                colors: [.clear, .black.opacity(Self.vignetteOpacity)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .allowsHitTesting(false)
             scanLines
         }
         .frame(height: size.photoHeight)
@@ -70,8 +100,8 @@ struct PolaroidView: View {
             for i in 0..<count {
                 let y = (CGFloat(i) / CGFloat(count)) * canvasSize.height
                 context.fill(
-                    Path(CGRect(x: 0, y: y, width: canvasSize.width, height: 1)),
-                    with: .color(.white.opacity(0.07))
+                    Path(CGRect(x: 0, y: y, width: canvasSize.width, height: Self.scanLineHeight)),
+                    with: .color(.white.opacity(Self.scanLineOpacity))
                 )
             }
         }
@@ -79,7 +109,7 @@ struct PolaroidView: View {
     }
 
     private var captionArea: some View {
-        VStack(spacing: 1) {
+        VStack(spacing: Self.captionGap) {
             Text(shop.name)
                 .font(.special(size.nameFontSize))
                 .foregroundStyle(Color.inkCol)
@@ -87,7 +117,7 @@ struct PolaroidView: View {
                 .multilineTextAlignment(.center)
             if size == .home {
                 Text(shop.address.components(separatedBy: ",").first ?? "")
-                    .font(.mono(6.5))
+                    .font(.mono(Self.addressFontSize))
                     .foregroundStyle(Color.grey)
                     .lineLimit(1)
                     .multilineTextAlignment(.center)
@@ -95,10 +125,10 @@ struct PolaroidView: View {
             if size == .map && selected {
                 Circle()
                     .fill(Color.pop)
-                    .frame(width: 4, height: 4)
+                    .frame(width: Self.selectedDotSize, height: Self.selectedDotSize)
             }
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, Self.captionHPadding)
         .frame(maxWidth: .infinity)
         .background(Color.cardBg)
     }

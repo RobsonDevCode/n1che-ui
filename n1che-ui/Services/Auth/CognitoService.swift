@@ -2,6 +2,9 @@ import Amplify
 import AWSCognitoAuthPlugin
 
 final class CognitoService {
+    // Length of the verification codes Cognito emails out
+    static let codeLength = 6
+
     func signIn(identifier: String, password: String) async throws -> AuthUser {
         let result = try await Amplify.Auth.signIn(
             username: identifier,
@@ -38,6 +41,18 @@ final class CognitoService {
 
     func signOut() async {
         _ = await Amplify.Auth.signOut()
+    }
+
+    func resetPassword(username: String) async throws {
+        _ = try await Amplify.Auth.resetPassword(for: username)
+    }
+
+    func confirmResetPassword(username: String, newPassword: String, code: String) async throws {
+        try await Amplify.Auth.confirmResetPassword(
+            for: username,
+            with: newPassword,
+            confirmationCode: code
+        )
     }
 
     // Returns nil instead of throwing when no active session exists

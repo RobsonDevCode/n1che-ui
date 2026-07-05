@@ -10,6 +10,8 @@
 	<string>$(COGNITO_CLIENT_ID)</string>
 	<key>CognitoRegion</key>
 	<string>$(COGNITO_REGION)</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>N1che uses your location to show independent shops near you and guide you along walking routes.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>BebasNeue-Regular.ttf</string>

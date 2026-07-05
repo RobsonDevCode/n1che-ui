@@ -1,10 +1,11 @@
 import SwiftUI
 
-enum PanelVariant {
-    case paper, ink
-}
-
 struct PanelView<Content: View>: View {
+    private static var paperShadowOpacity: Double { 0.12 }
+    private static var inkShadowOpacity: Double { 0.3 }
+    private static var shadowRadius: CGFloat { 20 }
+    private static var shadowYOffset: CGFloat { -10 }
+
     var variant: PanelVariant = .paper
     @ViewBuilder let content: () -> Content
 
@@ -21,10 +22,10 @@ struct PanelView<Content: View>: View {
             )
             .compositingGroup()
             .shadow(
-                color: .black.opacity(variant == .paper ? 0.12 : 0.3),
-                radius: 20,
+                color: .black.opacity(variant == .paper ? Self.paperShadowOpacity : Self.inkShadowOpacity),
+                radius: Self.shadowRadius,
                 x: 0,
-                y: -10
+                y: Self.shadowYOffset
             )
     }
 }

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct TaglineView: View {
+    private static let lineSpacing: CGFloat = 4
+
     let text: String
     var size: CGFloat = FontSize.body
     var color: Color = .ink2
@@ -9,6 +11,6 @@ struct TaglineView: View {
         Text(text)
             .font(.fellItalic(size))
             .foregroundStyle(color)
-            .lineSpacing(4)
+            .lineSpacing(Self.lineSpacing)
     }
 }

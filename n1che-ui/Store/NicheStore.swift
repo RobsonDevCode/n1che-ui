@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 @Observable
 final class NicheStore {
     private static let storageKey = "selectedNiche"

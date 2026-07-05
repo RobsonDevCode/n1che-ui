@@ -5,14 +5,6 @@ struct SignUpView: View {
     @Environment(AppCoordinator.self) private var coordinator
     @State private var viewModel = SignUpViewModel()
 
-    private static let confirmHeadingSize: CGFloat = 28
-    private static let confirmHeadingBottomGap: CGFloat = 8
-    private static let confirmSubSize: CGFloat = 14
-    private static let confirmSubLineSpacing: CGFloat = 6
-    private static let confirmSubBottomGap: CGFloat = 22
-    private static let codeFontSize: CGFloat = 24
-    private static let codeKerning: CGFloat = 8
-
     var body: some View {
         AuthLayoutView(
             title: viewModel.step == .register ? "SIGN UP" : "VERIFY",
@@ -34,54 +26,25 @@ struct SignUpView: View {
                     placeholder: "yourhandle",
                     contentType: .username
                 )
-                InputBoxView(
-                    label: "Password",
-                    value: $viewModel.password,
-                    placeholder: "••••••••",
-                    isSecure: true,
-                    contentType: .newPassword
-                )
-                PasswordRequirementsView(password: viewModel.password)
-                InputBoxView(
-                    label: "Confirm Password",
-                    value: $viewModel.confirmPassword,
-                    placeholder: "••••••••",
-                    isSecure: true,
-                    contentType: .newPassword
+                NewPasswordSection(
+                    password: $viewModel.password,
+                    confirmPassword: $viewModel.confirmPassword
                 )
                 if !viewModel.errorMessage.isEmpty {
                     AuthErrorText(message: viewModel.errorMessage)
                 }
-                NicheButton("Create Account", variant: .primary, loading: viewModel.isLoading, cornerRadius: CornerRadius.soft, trailingIcon: .arrowRight) {
+                AuthSubmitButton(title: "Create Account", loading: viewModel.isLoading) {
                     Task { await viewModel.submitRegistration() }
                 }
                 AuthLinkView(text: "Already have an account?", bold: "LOG IN") {
                     coordinator.replaceTop(.logIn)
                 }
             } else {
-                Text("Check your email.")
-                    .font(.fellItalic(Self.confirmHeadingSize))
-                    .foregroundStyle(Color.inkCol)
-                    .padding(.bottom, Self.confirmHeadingBottomGap)
-                Text("We sent a \(SignUpViewModel.codeLength)-digit code to\n\(viewModel.email)")
-                    .font(.special(Self.confirmSubSize))
-                    .foregroundStyle(Color.ink2)
-                    .lineSpacing(Self.confirmSubLineSpacing)
-                    .padding(.bottom, Self.confirmSubBottomGap)
-                InputBoxView(
-                    label: "Verification Code",
-                    value: $viewModel.code,
-                    placeholder: "000000",
-                    keyboard: .numberPad,
-                    contentType: .oneTimeCode,
-                    inputSize: Self.codeFontSize,
-                    inputKerning: Self.codeKerning,
-                    isCentered: true
-                )
+                VerificationCodeSection(destination: viewModel.email, code: $viewModel.code)
                 if !viewModel.errorMessage.isEmpty {
                     AuthErrorText(message: viewModel.errorMessage)
                 }
-                NicheButton("Verify", variant: .primary, loading: viewModel.isLoading, cornerRadius: CornerRadius.soft, trailingIcon: .arrowRight) {
+                AuthSubmitButton(title: "Verify", loading: viewModel.isLoading) {
                     Task { await verify() }
                 }
                 AuthLinkView(text: "Didn't receive it?", bold: "RESEND") {

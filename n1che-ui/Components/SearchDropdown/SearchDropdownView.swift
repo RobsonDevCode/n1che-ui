@@ -83,9 +83,7 @@ struct SearchDropdownView: View {
             .padding(.horizontal, Self.rowHPadding)
             .padding(.vertical, Self.rowVPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .overlay(alignment: .bottom) {
-                Rectangle().fill(Color.grey2).frame(height: Self.rowBorderWidth)
-            }
+            .bottomBorder(height: Self.rowBorderWidth)
         }
         .buttonStyle(.plain)
     }

@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct InputBoxView: View {
-    private static let labelSize: CGFloat   = 9
+    private static let labelSize: CGFloat   = FontSize.label
     private static let labelKerning: CGFloat = 1.5
     private static let labelGap: CGFloat    = 4
-    private static let inputSize: CGFloat   = 15
+    private static let defaultInputSize: CGFloat = 15
     private static let hPadding: CGFloat    = Spacing.md
     private static let vPadding: CGFloat    = 12
     private static let shadowOpacity: Double = 0.08
@@ -35,7 +35,7 @@ struct InputBoxView: View {
                     TextField(placeholder, text: $value)
                 }
             }
-            .font(.special(inputSize ?? Self.inputSize))
+            .font(.special(inputSize ?? Self.defaultInputSize))
             .kerning(inputKerning)
             .multilineTextAlignment(isCentered ? .center : .leading)
             .keyboardType(keyboard)

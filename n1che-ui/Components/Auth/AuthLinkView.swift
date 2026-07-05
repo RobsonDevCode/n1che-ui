@@ -6,8 +6,8 @@ struct AuthLinkView: View {
     var leadingIcon: AppIcon? = nil
     let action: () -> Void
 
-    private static let textSize: CGFloat = 13
-    private static let boldSize: CGFloat = 11
+    private static let textSize: CGFloat = FontSize.small
+    private static let boldSize: CGFloat = FontSize.caption
     private static let boldKerning: CGFloat = 1.5
     private static let gap: CGFloat = 8
     private static let iconSize: CGFloat = 11

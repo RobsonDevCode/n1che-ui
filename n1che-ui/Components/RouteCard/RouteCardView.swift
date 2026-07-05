@@ -37,7 +37,7 @@ struct RouteCardView: View {
     private static let stopDotSize: CGFloat = 7
     private static let stopNameFontSize: CGFloat = 9.5
     private static let stopNameKerning: CGFloat = 0.3
-    private static let arrowFontSize: CGFloat = 11
+    private static let arrowIconSize: CGFloat = 11
     private static let showingRowGap: CGFloat = 6
     private static let showingTopGap: CGFloat = 11
     private static let showingTopPadding: CGFloat = 10
@@ -140,12 +140,12 @@ struct RouteCardView: View {
                         .kerning(Self.stopNameKerning)
                         .foregroundStyle(fg)
                     if i < visibleStops.count - 1 {
-                        IconView(icon: .chevronRight, size: Self.arrowFontSize, color: muted)
+                        IconView(icon: .chevronRight, size: Self.arrowIconSize, color: muted)
                     }
                 }
             }
             if hasMore {
-                IconView(icon: .chevronRight, size: Self.arrowFontSize, color: muted)
+                IconView(icon: .chevronRight, size: Self.arrowIconSize, color: muted)
                 Text("…")
                     .font(.mono(Self.stopNameFontSize))
                     .foregroundStyle(muted)

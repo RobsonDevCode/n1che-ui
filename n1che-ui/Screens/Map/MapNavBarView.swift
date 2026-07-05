@@ -8,7 +8,6 @@ struct MapNavBarView: View {
     private static let topPadding: CGFloat = 14
     private static let bottomPadding: CGFloat = 12
     private static let itemGap: CGFloat = 10
-    private static let iconSize: CGFloat = 18
     private static let shadowOpacity: Double = 0.12
     private static let shadowRadius: CGFloat = 20
     private static let shadowYOffset: CGFloat = -10
@@ -19,7 +18,7 @@ struct MapNavBarView: View {
                 NicheButton(variant: .pillFlat, active: item.isActive, action: item.action) {
                     IconView(
                         icon: item.icon,
-                        size: Self.iconSize,
+                        size: IconSize.lg,
                         color: item.isActive ? .white : .inkCol
                     )
                     .frame(maxWidth: .infinity)

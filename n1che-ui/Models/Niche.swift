@@ -1,6 +1,6 @@
 import Foundation
 
-// TODO: replace allNiches with GET /niches from API
+// TODO: replace Niche.all with GET /niches from API
 struct Niche: Identifiable {
     let id: String
     let label: String
@@ -9,7 +9,8 @@ struct Niche: Identifiable {
     let count: Int
 }
 
-let allNiches: [Niche] = [
+extension Niche {
+    static let all: [Niche] = [
     Niche(id: "goth",        label: "Goth",       sub: "dark",         desc: "Dark aesthetics, velvet, silver hardware",  count: 847),
     Niche(id: "oldmoney",    label: "Old Money",  sub: "quiet luxury", desc: "Tailored cuts, cashmere, quiet luxury",     count: 1203),
     Niche(id: "skater",      label: "Skater",     sub: "streetwise",   desc: "Baggy fits, graphic tees, low-tops",        count: 2104),
@@ -18,4 +19,5 @@ let allNiches: [Niche] = [
     Niche(id: "y2k",         label: "Y2K",        sub: "retro-future", desc: "Low rise, chrome, butterfly clips",         count: 988),
     Niche(id: "techwear",    label: "Techwear",   sub: "utility",      desc: "Utility, waterproof, tactical fits",        count: 741),
     Niche(id: "vintage",     label: "Vintage",    sub: "archive",      desc: "Deadstock, 80s/90s, thrift finds",          count: 1567),
-]
+    ]
+}

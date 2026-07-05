@@ -1,5 +1,6 @@
 import Foundation
 
+@MainActor
 @Observable
 final class AuthStore {
     var isLoading: Bool = true

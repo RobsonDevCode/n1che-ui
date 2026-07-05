@@ -9,28 +9,19 @@ struct LoginView: View {
         AuthLayoutView(title: "LOG IN", onBack: { coordinator.pop() }) {
             @Bindable var viewModel = viewModel
 
-            InputBoxView(
-                label: "Email or Username",
-                value: $viewModel.identifier,
-                placeholder: "your@email.com or yourhandle",
-                keyboard: .emailAddress,
-                contentType: .username
-            )
-            InputBoxView(
-                label: "Password",
-                value: $viewModel.password,
-                placeholder: "••••••••",
-                isSecure: true,
-                contentType: .password
-            )
+            AuthIdentifierField(value: $viewModel.identifier)
+            AuthPasswordField(label: "Password", value: $viewModel.password)
             if !viewModel.errorMessage.isEmpty {
                 AuthErrorText(message: viewModel.errorMessage)
             }
-            NicheButton("Log In", variant: .primary, loading: viewModel.isLoading, cornerRadius: CornerRadius.soft, trailingIcon: .arrowRight) {
+            AuthSubmitButton(title: "Log In", loading: viewModel.isLoading) {
                 Task { await submit() }
             }
             AuthLinkView(text: "Don't have an account?", bold: "SIGN UP") {
                 coordinator.replaceTop(.signUp)
+            }
+            AuthLinkView(text: "Forgot your password?", bold: "RESET") {
+                coordinator.push(.forgotPassword)
             }
         }
     }

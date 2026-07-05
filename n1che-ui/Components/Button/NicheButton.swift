@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct NicheButton<Content: View>: View {
+    private static var primaryRotation: Double { -0.3 }
+
     var variant: ButtonVariant = .outline
     var active: Bool = false
     var disabled: Bool = false
@@ -20,15 +22,15 @@ struct NicheButton<Content: View>: View {
             }
         }
         .buttonStyle(NicheButtonStyle(variant: variant, active: active, disabled: disabled, cornerRadius: cornerRadius))
-        .rotationEffect(.degrees(rotate ?? (variant == .primary ? -0.3 : 0)))
+        .rotationEffect(.degrees(rotate ?? (variant == .primary ? Self.primaryRotation : 0)))
         .disabled(disabled || loading)
     }
 
     private var indicatorColor: Color {
         switch variant {
-        case .primary, .ghost, .danger:               return .white
-        case .action, .chip, .pill, .pillFlat:        return active ? .white : .inkCol
-        default:                                       return .inkCol
+        case .primary, .ghost, .danger: return .white
+        case .chip, .pill, .pillFlat:   return active ? .white : .inkCol
+        default:                        return .inkCol
         }
     }
 }

@@ -29,6 +29,8 @@ struct RootView: View {
             LoginView()
         case .signUp:
             SignUpView()
+        case .forgotPassword:
+            ForgotPasswordView()
         }
     }
 }

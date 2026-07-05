@@ -18,4 +18,7 @@ enum AppIcon: String {
     case check = "checkmark"
     case arrowLeft = "arrow.left"
     case arrowRight = "arrow.right"
+    case search = "magnifyingglass"
+    case close = "xmark"
+    case chevronDown = "chevron.down"
 }
