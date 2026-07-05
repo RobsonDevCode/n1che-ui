@@ -15,4 +15,7 @@ enum AppIcon: String {
     case roundaboutRight = "arrow.clockwise"
     case straight = "arrow.up"
     case arrive = "mappin"
+    case check = "checkmark"
+    case arrowLeft = "arrow.left"
+    case arrowRight = "arrow.right"
 }

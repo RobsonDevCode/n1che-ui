@@ -62,15 +62,8 @@ Config.xcconfig
 # API keys, secrets, credentials
 # ============================================================
 
-*secret*
-*Secret*
-*SECRET*
-*key*
-*Key*
-*KEY*
-*credentials*
-*Credentials*
-*CREDENTIALS*
+# (Deliberately no blanket *key*/*secret* globs — they silently swallow
+# source files like KeychainService.swift)
 *.pem
 *.p8
 *.p12

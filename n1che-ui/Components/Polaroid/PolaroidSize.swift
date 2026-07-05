@@ -52,4 +52,8 @@ enum PolaroidSize {
         case .map:  return 4
         }
     }
+
+    var photoWidth: CGFloat {
+        width - frameInset * 2
+    }
 }

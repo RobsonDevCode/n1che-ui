@@ -16,6 +16,10 @@ enum StringUtils {
         return "\(Int(meters.rounded())) M"
     }
 
+    static func isEmailAddress(_ value: String) -> Bool {
+        value.range(of: "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$", options: .regularExpression) != nil
+    }
+
     // First word of a name, truncated with a trailing "." when too long
     static func shortName(_ name: String) -> String {
         let first = name

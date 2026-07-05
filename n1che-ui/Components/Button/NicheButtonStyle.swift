@@ -4,6 +4,7 @@ struct NicheButtonStyle: ButtonStyle {
     let variant: ButtonVariant
     let active: Bool
     let disabled: Bool
+    var cornerRadius: CGFloat? = nil
 
     func makeBody(configuration: Configuration) -> some View {
         let bg: Color = {
@@ -23,17 +24,17 @@ struct NicheButtonStyle: ButtonStyle {
             case .chip:     return .white
             case .paper:    return .paper
             case .icon:     return .white
-            case .cta:      return .paper
+            case .cta:      return .white
             case .danger:   return Color(hex: "#C0392B")
             case .pill:     return .white
             case .pillFlat: return .white
             }
         }()
 
-        let cornerRadius: CGFloat = {
+        let cornerRadius: CGFloat = self.cornerRadius ?? {
             switch variant {
             case .icon:            return 15
-            case .cta:             return 13
+            case .cta:             return CornerRadius.soft
             case .danger:          return 23
             case .pill, .pillFlat: return 20
             default:               return 0
@@ -59,7 +60,7 @@ struct NicheButtonStyle: ButtonStyle {
                 case .pill, .pillFlat:   return 9
                 case .link:              return Spacing.sm
                 case .primary:           return 16
-                case .cta:               return 18
+                case .cta:               return 16
                 default:                 return 0
                 }
             }())
@@ -84,9 +85,16 @@ struct NicheButtonStyle: ButtonStyle {
             }
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .shadow(
-                color: variant == .pill ? .black.opacity(active ? 0.25 : 0.18) : .clear,
-                radius: variant == .pill ? 6 : 0,
-                x: 0, y: variant == .pill ? 2 : 0
+                color: {
+                    switch variant {
+                    case .pill: return .black.opacity(active ? 0.25 : 0.18)
+                    case .cta:  return .black.opacity(0.08)
+                    default:    return .clear
+                    }
+                }(),
+                radius: variant == .pill ? 6 : variant == .cta ? 10 : 0,
+                x: 0,
+                y: variant == .pill ? 2 : variant == .cta ? 4 : 0
             )
             .opacity(configuration.isPressed && !disabled ? 0.85 : 1.0)
     }

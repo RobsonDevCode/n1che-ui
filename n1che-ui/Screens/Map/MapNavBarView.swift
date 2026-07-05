@@ -34,6 +34,7 @@ struct MapNavBarView: View {
             topLeadingRadius: Self.cornerRadius,
             topTrailingRadius: Self.cornerRadius
         ))
+        .compositingGroup()
         .shadow(
             color: .white.opacity(Self.shadowOpacity),
             radius: Self.shadowRadius,

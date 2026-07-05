@@ -2,5 +2,9 @@ import Foundation
 
 @Observable
 final class NicheStore {
-    var selectedNiche: String? = nil
+    private static let storageKey = "selectedNiche"
+
+    var selectedNiche: String? = UserDefaults.standard.string(forKey: NicheStore.storageKey) {
+        didSet { UserDefaults.standard.set(selectedNiche, forKey: Self.storageKey) }
+    }
 }

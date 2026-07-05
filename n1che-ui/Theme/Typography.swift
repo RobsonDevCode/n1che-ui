@@ -4,7 +4,8 @@ enum AppFont {
     static let bebas      = "BebasNeue-Regular"
     static let special    = "SpecialElite-Regular"
     static let oswald     = "Oswald-Regular"
-    static let fellItalic = "IMFellEnglish-Italic"
+    // PostScript name uses underscores — the file is IMFellEnglish-Italic.ttf
+    static let fellItalic = "IM_FELL_English_Italic"
     static let mono       = "DMMono-Regular"
 }
 

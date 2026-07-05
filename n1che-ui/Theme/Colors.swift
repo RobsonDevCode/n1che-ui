@@ -13,6 +13,7 @@ extension Color {
     static let pinColors: [Color]  = Palette.pinHexValues.map { Color(hex: $0) }
 
     static let openGreen = Color(hex: "#4CAF50")
+    static let errorRed  = Color(hex: "#8B1A1A")
     static let liveGreen = Color(hex: "#3AD07A")
     static let cardBg    = Color(hex: "#F8F7F3")
     static let tackShaft = Color(hex: "#5A5A5A").opacity(0.7)

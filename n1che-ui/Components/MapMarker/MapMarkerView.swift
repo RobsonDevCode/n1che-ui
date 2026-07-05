@@ -70,6 +70,7 @@ struct MapMarkerView: View {
         .fixedSize()
         .padding(Self.cardBorderWidth)
         .background(Color.inkCol)
+        .compositingGroup()
         .shadow(
             color: selected ? Color.inkCol.opacity(Self.shadowOpacity) : .clear,
             radius: Self.shadowRadius,

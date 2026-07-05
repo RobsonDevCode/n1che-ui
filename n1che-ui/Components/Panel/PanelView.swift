@@ -13,12 +13,13 @@ struct PanelView<Content: View>: View {
             .background(variant == .paper ? Color.paper : Color.inkCol)
             .clipShape(
                 .rect(
-                    topLeadingRadius: 26,
+                    topLeadingRadius: CornerRadius.panel,
                     bottomLeadingRadius: 0,
                     bottomTrailingRadius: 0,
-                    topTrailingRadius: 26
+                    topTrailingRadius: CornerRadius.panel
                 )
             )
+            .compositingGroup()
             .shadow(
                 color: .black.opacity(variant == .paper ? 0.12 : 0.3),
                 radius: 20,

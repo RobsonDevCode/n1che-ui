@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		27C0FFEE0000000000000A04 /* Amplify in Frameworks */ = {isa = PBXBuildFile; productRef = 27C0FFEE0000000000000A02 /* Amplify */; };
+		27C0FFEE0000000000000A05 /* AWSCognitoAuthPlugin in Frameworks */ = {isa = PBXBuildFile; productRef = 27C0FFEE0000000000000A03 /* AWSCognitoAuthPlugin */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		27D6E9982FF6C6DF00DE82E0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +29,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		27C0F16CFFEE00DE82E0C0DE /* Config.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config.xcconfig; sourceTree = "<group>"; };
 		27D6E9882FF6C6DE00DE82E0 /* n1che-ui.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "n1che-ui.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		27D6E9972FF6C6DF00DE82E0 /* n1che-uiTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "n1che-uiTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		27D6E9A12FF6C6DF00DE82E0 /* n1che-uiUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "n1che-uiUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -52,6 +58,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				27C0FFEE0000000000000A04 /* Amplify in Frameworks */,
+				27C0FFEE0000000000000A05 /* AWSCognitoAuthPlugin in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,6 +83,7 @@
 		27D6E97F2FF6C6DD00DE82E0 = {
 			isa = PBXGroup;
 			children = (
+				27C0F16CFFEE00DE82E0C0DE /* Config.xcconfig */,
 				27D6E98A2FF6C6DE00DE82E0 /* n1che-ui */,
 				27D6E99A2FF6C6DF00DE82E0 /* n1che-uiTests */,
 				27D6E9A42FF6C6DF00DE82E0 /* n1che-uiUITests */,
@@ -112,6 +121,8 @@
 			);
 			name = "n1che-ui";
 			packageProductDependencies = (
+				27C0FFEE0000000000000A02 /* Amplify */,
+				27C0FFEE0000000000000A03 /* AWSCognitoAuthPlugin */,
 			);
 			productName = "n1che-ui";
 			productReference = 27D6E9882FF6C6DE00DE82E0 /* n1che-ui.app */;
@@ -195,6 +206,9 @@
 			);
 			mainGroup = 27D6E97F2FF6C6DD00DE82E0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				27C0FFEE0000000000000A01 /* XCRemoteSwiftPackageReference "amplify-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 27D6E9892FF6C6DE00DE82E0 /* Products */;
 			projectDirPath = "";
@@ -392,6 +406,7 @@
 		};
 		27D6E9AC2FF6C6DF00DE82E0 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 27C0F16CFFEE00DE82E0C0DE /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -400,13 +415,7 @@
 				DEVELOPMENT_TEAM = 5A27D5L2Y7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIAppFonts = (
-					"BebasNeue-Regular.ttf",
-					"DMMono-Regular.ttf",
-					"IMFellEnglish-Italic.ttf",
-					"Oswald-Regular.ttf",
-					"SpecialElite-Regular.ttf",
-				);
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -431,6 +440,7 @@
 		};
 		27D6E9AD2FF6C6DF00DE82E0 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 27C0F16CFFEE00DE82E0C0DE /* Config.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -439,13 +449,7 @@
 				DEVELOPMENT_TEAM = 5A27D5L2Y7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIAppFonts = (
-					"BebasNeue-Regular.ttf",
-					"DMMono-Regular.ttf",
-					"IMFellEnglish-Italic.ttf",
-					"Oswald-Regular.ttf",
-					"SpecialElite-Regular.ttf",
-				);
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -592,6 +596,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		27C0FFEE0000000000000A01 /* XCRemoteSwiftPackageReference "amplify-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/aws-amplify/amplify-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		27C0FFEE0000000000000A02 /* Amplify */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 27C0FFEE0000000000000A01 /* XCRemoteSwiftPackageReference "amplify-swift" */;
+			productName = Amplify;
+		};
+		27C0FFEE0000000000000A03 /* AWSCognitoAuthPlugin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 27C0FFEE0000000000000A01 /* XCRemoteSwiftPackageReference "amplify-swift" */;
+			productName = AWSCognitoAuthPlugin;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 27D6E9802FF6C6DD00DE82E0 /* Project object */;
 }

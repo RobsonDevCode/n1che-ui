@@ -18,11 +18,19 @@ struct CorkBoardView: View {
     private static let dotColor = Color.black.opacity(0.07)
     private static let dotRadius: CGFloat = 0.9
     private static let dotSpacing: CGFloat = 5
+    // Polaroid (115) plus the tack protruding above it
+    private static let itemHeight: CGFloat = 123
+    private static let edgeMargin: CGFloat = 6
 
     let shops: [ShopDisplay]
+    // Space at the bottom covered by overlapping UI — pins are laid out above it
+    var bottomInset: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
+            let boardHeight = max(geo.size.height - bottomInset, Self.itemHeight)
+            let itemWidth = PolaroidSize.home.width
+
             ZStack(alignment: .topLeading) {
                 Color.paper2
                 HalftonePatternView(
@@ -38,7 +46,10 @@ struct CorkBoardView: View {
                             PolaroidView(shop: shops[i % shops.count], size: .home, index: i)
                         }
                         .rotationEffect(.degrees(pin.rot))
-                        .offset(x: pin.lx * geo.size.width, y: pin.ty * geo.size.height)
+                        .offset(
+                            x: min(pin.lx * geo.size.width, geo.size.width - itemWidth - Self.edgeMargin),
+                            y: min(pin.ty * boardHeight, boardHeight - Self.itemHeight - Self.edgeMargin)
+                        )
                     }
                 }
             }

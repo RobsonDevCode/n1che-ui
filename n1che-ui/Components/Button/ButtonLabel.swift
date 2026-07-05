@@ -4,12 +4,25 @@ struct ButtonLabel: View {
     let text: String
     let variant: ButtonVariant
     let active: Bool
+    var leadingIcon: AppIcon? = nil
+    var trailingIcon: AppIcon? = nil
+
+    private static let iconGap: CGFloat = 6
+    private static let iconSizeRatio: CGFloat = 0.75
 
     var body: some View {
-        Text(text.uppercased())
-            .font(font)
-            .kerning(kerning)
-            .foregroundStyle(color)
+        HStack(spacing: Self.iconGap) {
+            if let leadingIcon {
+                IconView(icon: leadingIcon, size: fontSize * Self.iconSizeRatio, color: color)
+            }
+            Text(text.uppercased())
+                .font(font)
+                .kerning(kerning)
+                .foregroundStyle(color)
+            if let trailingIcon {
+                IconView(icon: trailingIcon, size: fontSize * Self.iconSizeRatio, color: color)
+            }
+        }
     }
 
     private var font: Font {

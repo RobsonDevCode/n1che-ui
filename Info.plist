@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>GooglePlacesAPIKey</key>
+	<string>$(GOOGLE_PLACES_API_KEY)</string>
+	<key>CognitoUserPoolId</key>
+	<string>$(COGNITO_USER_POOL_ID)</string>
+	<key>CognitoClientId</key>
+	<string>$(COGNITO_CLIENT_ID)</string>
+	<key>CognitoRegion</key>
+	<string>$(COGNITO_REGION)</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>BebasNeue-Regular.ttf</string>
+		<string>DMMono-Regular.ttf</string>
+		<string>IMFellEnglish-Italic.ttf</string>
+		<string>Oswald-Regular.ttf</string>
+		<string>SpecialElite-Regular.ttf</string>
+	</array>
+</dict>
+</plist>

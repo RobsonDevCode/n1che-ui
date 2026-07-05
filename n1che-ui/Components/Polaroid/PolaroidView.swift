@@ -28,6 +28,8 @@ struct PolaroidView: View {
                 Rectangle().stroke(Color.inkCol, lineWidth: 1)
             }
         }
+        // Flatten before shadowing so glyphs don't cast individual shadows
+        .compositingGroup()
         .shadow(
             color: .black.opacity(shadowOpacity),
             radius: shadowRadius,
@@ -42,6 +44,17 @@ struct PolaroidView: View {
             Text(initial)
                 .font(.bebas(size.initialFontSize))
                 .foregroundStyle(Color.white.opacity(0.16))
+            if let photoUrl = shop.photoUrl, let url = URL(string: photoUrl) {
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: size.photoWidth, height: size.photoHeight)
+                        .clipped()
+                } placeholder: {
+                    Color.clear
+                }
+            }
             HalftonePatternView(dotColor: .white.opacity(0.13), dotRadius: 0.8, spacing: 4)
             LinearGradient(colors: [.clear, .black.opacity(0.20)], startPoint: .top, endPoint: .bottom)
                 .allowsHitTesting(false)
