@@ -10,10 +10,19 @@ final class MapViewModel {
     var selectedShop: ShopDisplay? = nil
     var cameraCommand: MapCameraCommand? = nil
     var searchQuery = "" {
-        didSet { scheduleAutocomplete() }
+        didSet {
+            guard searchQuery != oldValue else { return }
+            scheduleAutocomplete()
+        }
     }
     var addShopQuery = "" {
-        didSet { scheduleAddShopSearch() }
+        // A TextField re-commits its binding on focus loss (e.g. selecting a
+        // result dismisses the keyboard), firing didSet with an unchanged value.
+        // Only react to genuine edits, or that spurious set clears the selection.
+        didSet {
+            guard addShopQuery != oldValue else { return }
+            scheduleAddShopSearch()
+        }
     }
     private(set) var placePredictions: [PlacePrediction] = []
     private(set) var addShopResults: [ShopDisplay] = []
@@ -140,9 +149,10 @@ final class MapViewModel {
     }
 
     func selectShop(id: String) {
-        // Idempotent: MapKit can fire didSelect twice for one tap, so a toggle
-        // here would select then immediately deselect. Deselect via the panel.
-        guard selectedShop?.id != id else { return }
+        if selectedShop?.id == id {
+            deselectShop()
+            return
+        }
         guard let shop = shops.first(where: { $0.id == id }) else { return }
         selectedShop = shop
         mode = .shop
@@ -279,21 +289,14 @@ final class MapViewModel {
     }
 
     private func fitCameraToResults() {
-        guard let first = addShopResults.first else { return }
-        var minLat = first.latitude, maxLat = first.latitude
-        var minLng = first.longitude, maxLng = first.longitude
-        for shop in addShopResults {
-            minLat = min(minLat, shop.latitude)
-            maxLat = max(maxLat, shop.latitude)
-            minLng = min(minLng, shop.longitude)
-            maxLng = max(maxLng, shop.longitude)
-        }
+        guard let region = Maps.region(
+            enclosing: addShopResults.map { Coordinate(latitude: $0.latitude, longitude: $0.longitude) },
+            paddingFactor: Self.fitPaddingFactor,
+            minimumSpan: Self.browseSpan
+        ) else { return }
         cameraCommand = MapCameraCommand(
-            center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLng + maxLng) / 2),
-            span: MKCoordinateSpan(
-                latitudeDelta: max((maxLat - minLat) * Self.fitPaddingFactor, Self.browseSpan.latitudeDelta),
-                longitudeDelta: max((maxLng - minLng) * Self.fitPaddingFactor, Self.browseSpan.longitudeDelta)
-            ),
+            center: region.center,
+            span: region.span,
             duration: Self.recenterAnimDuration
         )
     }
