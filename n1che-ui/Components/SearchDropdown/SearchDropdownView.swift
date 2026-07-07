@@ -6,6 +6,8 @@ struct SearchDropdownView: View {
     let onSelectShop: (ShopDisplay) -> Void
     let onSelectPlace: (PlacePrediction) -> Void
 
+    @State private var contentHeight: CGFloat = 0
+
     private static let maxHeight: CGFloat = 260
     private static let borderWidth: CGFloat = 2
     private static let sectionFontSize: CGFloat = 8
@@ -41,8 +43,11 @@ struct SearchDropdownView: View {
                     }
                 }
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: {
+                contentHeight = $0
+            }
         }
-        .frame(maxHeight: Self.maxHeight)
+        .frame(height: min(contentHeight, Self.maxHeight))
         .background(Color.white)
         .overlay(alignment: .leading) {
             Rectangle().fill(Color.inkCol).frame(width: Self.borderWidth)

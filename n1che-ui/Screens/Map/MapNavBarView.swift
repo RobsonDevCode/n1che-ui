@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MapNavBarView: View {
     let items: [MapNavBarItem]
+    var bottomInset: CGFloat = 0
 
     private static let cornerRadius: CGFloat = 26
     private static let hPadding: CGFloat = 16
@@ -27,7 +28,7 @@ struct MapNavBarView: View {
         }
         .padding(.horizontal, Self.hPadding)
         .padding(.top, Self.topPadding)
-        .padding(.bottom, Self.bottomPadding)
+        .padding(.bottom, Self.bottomPadding + bottomInset)
         .background(Color.inkCol)
         .clipShape(UnevenRoundedRectangle(
             topLeadingRadius: Self.cornerRadius,

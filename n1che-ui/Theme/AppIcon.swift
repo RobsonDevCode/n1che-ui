@@ -21,4 +21,10 @@ enum AppIcon: String {
     case search = "magnifyingglass"
     case close = "xmark"
     case chevronDown = "chevron.down"
+    case upvote = "arrowshape.up"
+    case bookmark = "bookmark"
+    case bookmarkFill = "bookmark.fill"
+    case directions = "arrow.triangle.turn.up.right.diamond"
+    case locate = "location"
+    case map = "map"
 }

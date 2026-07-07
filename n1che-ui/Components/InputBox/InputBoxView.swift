@@ -20,6 +20,9 @@ struct InputBoxView: View {
     var inputSize: CGFloat? = nil
     var inputKerning: CGFloat = 0
     var isCentered: Bool = false
+    var isMultiline: Bool = false
+
+    private static let multilineLines: ClosedRange<Int> = 4...8
 
     var body: some View {
         VStack(alignment: .leading, spacing: Self.labelGap) {
@@ -31,6 +34,9 @@ struct InputBoxView: View {
             Group {
                 if isSecure {
                     SecureField(placeholder, text: $value)
+                } else if isMultiline {
+                    TextField(placeholder, text: $value, axis: .vertical)
+                        .lineLimit(Self.multilineLines)
                 } else {
                     TextField(placeholder, text: $value)
                 }

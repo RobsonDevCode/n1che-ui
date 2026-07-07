@@ -4,4 +4,5 @@ struct Place: Codable, Identifiable {
     let formattedAddress: String?
     let location: PlaceLatLng?
     let photos: [PlacePhoto]?
+    let currentOpeningHours: PlaceOpeningHours?
 }

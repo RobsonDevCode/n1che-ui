@@ -11,6 +11,8 @@ final class SplashViewModel {
     private static let searchLongitude = -0.1396
     private static let searchRadiusMeters: Double = 800
     private static let maxShops = 8
+    // Places has no photo filter — over-fetch, then drop photo-less places locally
+    private static let searchResultCount = 20
     private static let photoMaxWidthPx = 400
 
     private let shopsService: ShopsService
@@ -37,28 +39,16 @@ final class SplashViewModel {
             latitude: Self.searchLatitude,
             longitude: Self.searchLongitude,
             radiusMeters: Self.searchRadiusMeters,
-            maxResults: Self.maxShops
+            maxResults: Self.searchResultCount
         )
-        guard !places.isEmpty else { return base }
+        let withPhotos = places.filter { $0.photos?.isEmpty == false }.prefix(Self.maxShops)
+        guard !withPhotos.isEmpty else { return base }
 
-        return places.enumerated().map { i, place in
-            let mock = base[i % base.count]
-            return Shop(
-                id: place.id,
-                googlePlaceId: place.id,
-                name: place.displayName?.text ?? mock.name,
-                niche: mock.niche,
-                address: place.formattedAddress ?? mock.address,
-                latitude: place.location?.latitude ?? mock.latitude,
-                longitude: place.location?.longitude ?? mock.longitude,
-                voteCount: mock.voteCount,
-                createdAt: mock.createdAt,
-                addedByUserId: mock.addedByUserId,
-                addedByUsername: mock.addedByUsername,
-                photoUrl: place.photos?.first.flatMap {
-                    placesService.photoURL(for: $0, maxWidthPx: Self.photoMaxWidthPx)?.absoluteString
-                }
-            )
+        return withPhotos.enumerated().map { i, place in
+            let photoUrl = place.photos?.first.flatMap {
+                placesService.photoURL(for: $0, maxWidthPx: Self.photoMaxWidthPx)?.absoluteString
+            }
+            return base[i % base.count].overlaying(place, photoUrl: photoUrl)
         }
     }
 }
