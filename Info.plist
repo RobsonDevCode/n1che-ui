@@ -2,8 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>GooglePlacesAPIKey</key>
-	<string>$(GOOGLE_PLACES_API_KEY)</string>
+	<key>GoogleAPIKey</key>
+	<string>$(GOOGLE_API_KEY)</string>
 	<key>CognitoUserPoolId</key>
 	<string>$(COGNITO_USER_POOL_ID)</string>
 	<key>CognitoClientId</key>

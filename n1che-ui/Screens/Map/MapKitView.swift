@@ -9,8 +9,40 @@ struct MapKitView: UIViewRepresentable {
     var isInteractive: Bool = true
     // Opacity for unselected markers while one is selected
     var dimmedMarkerAlpha: CGFloat = 0
+    // Full route geometry (active route / navigation) and a lighter builder preview
+    var routePolyline: [Coordinate] = []
+    var previewPolyline: [Coordinate] = []
     let onSelect: (String) -> Void
     let onRegionChange: (MKCoordinateRegion) -> Void
+
+    // Route is drawn as a wide casing under a narrower core; preview is thinner.
+    private static let routeCasingColor = UIColor(Color.pinColors[1])
+    private static let routeCoreColor = UIColor(Color.polPalette[4])
+    private static let routeCasingWidth: CGFloat = 9
+    private static let routeCoreWidth: CGFloat = 5
+    private static let previewCasingWidth: CGFloat = 7
+    private static let previewCoreWidth: CGFloat = 4
+
+    private enum RouteOverlayLevel: String {
+        case routeCasing, routeCore, previewCasing, previewCore
+
+        // Casing levels share one colour; core levels share the other.
+        var strokeColor: UIColor {
+            switch self {
+            case .routeCasing, .previewCasing: MapKitView.routeCasingColor
+            case .routeCore, .previewCore:     MapKitView.routeCoreColor
+            }
+        }
+
+        var lineWidth: CGFloat {
+            switch self {
+            case .routeCasing:   MapKitView.routeCasingWidth
+            case .routeCore:     MapKitView.routeCoreWidth
+            case .previewCasing: MapKitView.previewCasingWidth
+            case .previewCore:   MapKitView.previewCoreWidth
+            }
+        }
+    }
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -38,6 +70,7 @@ struct MapKitView: UIViewRepresentable {
         map.isPitchEnabled = isInteractive
         coordinator.syncAnnotations(on: map, shops: shops)
         coordinator.syncSelection(on: map, selectedId: selectedShopId)
+        coordinator.syncOverlays(on: map, route: routePolyline, preview: previewPolyline)
         coordinator.apply(cameraCommand, to: map)
     }
 
@@ -47,6 +80,8 @@ struct MapKitView: UIViewRepresentable {
         private var lastShopIds: [String] = []
         private var lastSelectedId: String? = nil
         private var lastCameraCommandId: UUID? = nil
+        private var lastRoutePolyline: [Coordinate] = []
+        private var lastPreviewPolyline: [Coordinate] = []
 
         init(parent: MapKitView) {
             self.parent = parent
@@ -80,6 +115,34 @@ struct MapKitView: UIViewRepresentable {
             }
         }
 
+        func syncOverlays(on map: MKMapView, route: [Coordinate], preview: [Coordinate]) {
+            guard route != lastRoutePolyline || preview != lastPreviewPolyline else { return }
+            lastRoutePolyline = route
+            lastPreviewPolyline = preview
+            map.removeOverlays(map.overlays)
+            addLayeredPolyline(route, casing: .routeCasing, core: .routeCore, to: map)
+            addLayeredPolyline(preview, casing: .previewCasing, core: .previewCore, to: map)
+        }
+
+        // Casing added first so the narrower core draws on top of it.
+        private func addLayeredPolyline(
+            _ coordinates: [Coordinate],
+            casing: RouteOverlayLevel,
+            core: RouteOverlayLevel,
+            to map: MKMapView
+        ) {
+            guard coordinates.count >= 2 else { return }
+            map.addOverlay(makePolyline(coordinates, level: casing))
+            map.addOverlay(makePolyline(coordinates, level: core))
+        }
+
+        private func makePolyline(_ coordinates: [Coordinate], level: RouteOverlayLevel) -> MKPolyline {
+            let points = coordinates.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+            let polyline = MKPolyline(coordinates: points, count: points.count)
+            polyline.title = level.rawValue
+            return polyline
+        }
+
         private func configure(_ view: MarkerAnnotationView, for annotation: ShopAnnotation) {
             let selected = annotation.shop.id == parent.selectedShopId
             let dimmed = parent.selectedShopId != nil && !selected
@@ -102,6 +165,19 @@ struct MapKitView: UIViewRepresentable {
                 configure(markerView, for: shopAnnotation)
             }
             return view
+        }
+
+        func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
+            guard let polyline = overlay as? MKPolyline,
+                  let level = polyline.title.flatMap(RouteOverlayLevel.init(rawValue:)) else {
+                return MKOverlayRenderer(overlay: overlay)
+            }
+            let renderer = MKPolylineRenderer(polyline: polyline)
+            renderer.lineCap = .round
+            renderer.lineJoin = .round
+            renderer.strokeColor = level.strokeColor
+            renderer.lineWidth = level.lineWidth
+            return renderer
         }
 
         func mapView(_ mapView: MKMapView, didSelect view: MKAnnotationView) {

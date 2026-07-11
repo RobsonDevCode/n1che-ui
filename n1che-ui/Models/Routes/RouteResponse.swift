@@ -8,8 +8,8 @@ struct RouteResponse: Identifiable, Codable {
     let createdBy: String
     let userId: String
     let stops: [RouteStop]
-    let estimatedRouteTime: String
-    let totalDistanceStr: String
+    let polyline: [Coordinate]
+    let distanceMeters: Double
     let totalUpvotes: Int
     let totalMinutes: Int
     let mode: RouteMode

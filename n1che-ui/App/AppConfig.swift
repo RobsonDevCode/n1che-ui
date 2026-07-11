@@ -3,8 +3,8 @@ import Foundation
 // Values flow from Config.xcconfig (gitignored) → build settings →
 // Info.plist substitution → here.
 enum AppConfig {
-    static var googlePlacesAPIKey: String {
-        Bundle.main.object(forInfoDictionaryKey: "GooglePlacesAPIKey") as? String ?? ""
+    static var googleAPIKey: String {
+        Bundle.main.object(forInfoDictionaryKey: "GoogleAPIKey") as? String ?? ""
     }
 
     static var cognitoUserPoolId: String {

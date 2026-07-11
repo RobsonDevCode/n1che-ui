@@ -30,6 +30,12 @@ final class MapViewModel {
     private(set) var isSearchingPlaces = false
     private(set) var isSubmittingShop = false
     private(set) var isLoading = false
+    private(set) var activeRoute: RouteResponse? = nil
+    // Builder preview geometry, drawn thinner than an active route
+    private(set) var previewPolyline: [Coordinate] = []
+
+    // Full geometry of the active route, drawn on the map
+    var routePolyline: [Coordinate] { activeRoute?.polyline ?? [] }
 
     // What the map shows: search results while adding a shop, niche shops otherwise
     var markers: [ShopDisplay] {

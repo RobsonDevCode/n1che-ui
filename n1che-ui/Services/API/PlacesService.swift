@@ -12,21 +12,18 @@ final class PlacesService {
     private static let searchFieldMask = "places.id,places.displayName,places.formattedAddress,places.location,places.photos,places.currentOpeningHours"
     private static let autocompleteFieldMask = "suggestions.placePrediction.placeId,suggestions.placePrediction.text"
 
+    private let client: GoogleAPIClient
+
+    init(client: GoogleAPIClient = .shared) {
+        self.client = client
+    }
+
     func searchNearby(
         latitude: Double,
         longitude: Double,
         radiusMeters: Double,
         maxResults: Int
     ) async throws -> [Place] {
-        guard !AppConfig.googlePlacesAPIKey.isEmpty else {
-            throw PlacesServiceError.missingAPIKey
-        }
-
-        var request = URLRequest(url: Self.searchNearbyURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(AppConfig.googlePlacesAPIKey, forHTTPHeaderField: "X-Goog-Api-Key")
-        request.setValue(Self.searchFieldMask, forHTTPHeaderField: "X-Goog-FieldMask")
         let body: [String: Any] = [
             "includedTypes": ["clothing_store"],
             "maxResultCount": maxResults,
@@ -37,22 +34,13 @@ final class PlacesService {
                 ],
             ],
         ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONDecoder().decode(PlaceSearchResponse.self, from: data).places ?? []
+        let response: PlaceSearchResponse = try await client.post(
+            Self.searchNearbyURL, fieldMask: Self.searchFieldMask, body: body
+        )
+        return response.places ?? []
     }
 
     func searchText(query: String, near coordinate: Coordinate?) async throws -> [Place] {
-        guard !AppConfig.googlePlacesAPIKey.isEmpty else {
-            throw PlacesServiceError.missingAPIKey
-        }
-
-        var request = URLRequest(url: Self.searchTextURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(AppConfig.googlePlacesAPIKey, forHTTPHeaderField: "X-Goog-Api-Key")
-        request.setValue(Self.searchFieldMask, forHTTPHeaderField: "X-Goog-FieldMask")
         var body: [String: Any] = [
             "textQuery": query,
             "maxResultCount": Self.textSearchMaxResults,
@@ -65,34 +53,24 @@ final class PlacesService {
                 ],
             ]
         }
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        return try JSONDecoder().decode(PlaceSearchResponse.self, from: data).places ?? []
+        let response: PlaceSearchResponse = try await client.post(
+            Self.searchTextURL, fieldMask: Self.searchFieldMask, body: body
+        )
+        return response.places ?? []
     }
 
     func autocomplete(query: String) async throws -> [PlacePrediction] {
-        guard !AppConfig.googlePlacesAPIKey.isEmpty else {
-            throw PlacesServiceError.missingAPIKey
-        }
-
-        var request = URLRequest(url: Self.autocompleteURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(AppConfig.googlePlacesAPIKey, forHTTPHeaderField: "X-Goog-Api-Key")
-        request.setValue(Self.autocompleteFieldMask, forHTTPHeaderField: "X-Goog-FieldMask")
         let body: [String: Any] = [
             "input": query,
             "includedPrimaryTypes": ["geocode"],
         ]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
-        let (data, _) = try await URLSession.shared.data(for: request)
-        let response = try JSONDecoder().decode(PlaceAutocompleteResponse.self, from: data)
+        let response: PlaceAutocompleteResponse = try await client.post(
+            Self.autocompleteURL, fieldMask: Self.autocompleteFieldMask, body: body
+        )
         return (response.suggestions ?? []).map(\.placePrediction)
     }
 
     func photoURL(for photo: PlacePhoto, maxWidthPx: Int) -> URL? {
-        URL(string: "\(Self.photoBaseURL)/\(photo.name)/media?maxWidthPx=\(maxWidthPx)&key=\(AppConfig.googlePlacesAPIKey)")
+        URL(string: "\(Self.photoBaseURL)/\(photo.name)/media?maxWidthPx=\(maxWidthPx)&key=\(AppConfig.googleAPIKey)")
     }
 }

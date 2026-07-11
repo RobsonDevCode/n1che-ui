@@ -68,6 +68,8 @@ struct MapView: View {
                                 ),
                                 isInteractive: viewModel.mode != .shop,
                                 dimmedMarkerAlpha: viewModel.mode.isAddingShop ? Self.addShopDimmedMarkerAlpha : 0,
+                                routePolyline: viewModel.routePolyline,
+                                previewPolyline: viewModel.previewPolyline,
                                 onSelect: { id in
                                     searchFocused = false
                                     viewModel.markerTapped(id: id)

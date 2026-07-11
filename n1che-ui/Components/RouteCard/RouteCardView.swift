@@ -107,7 +107,7 @@ struct RouteCardView: View {
 
     private func statsRow(fg: Color, muted: Color) -> some View {
         HStack(spacing: Self.statsRowGap) {
-            Text("\(route.stops.count) STOPS · \(route.estimatedRouteTime) · \(route.totalDistanceStr)")
+            Text("\(route.stops.count) STOPS · \(StringUtils.formatRouteTime(minutes: route.totalMinutes)) · \(StringUtils.formatRouteDistance(meters: route.distanceMeters))")
                 .font(.mono(Self.statsFontSize))
                 .kerning(Self.statsKerning)
                 .foregroundStyle(muted)
