@@ -33,13 +33,17 @@ final class MapViewModel {
     private(set) var activeRoute: RouteResponse? = nil
     // Builder preview geometry, drawn thinner than an active route
     private(set) var previewPolyline: [Coordinate] = []
+    // The shops behind the active route's stops, in stop order
+    private(set) var routeStops: [ShopDisplay] = []
+    private(set) var isRouteLoading = false
+    private(set) var routeErrorMessage: String? = nil
 
     // Full geometry of the active route, drawn on the map
     var routePolyline: [Coordinate] { activeRoute?.polyline ?? [] }
 
-    // What the map shows: search results while adding a shop, niche shops otherwise
     var markers: [ShopDisplay] {
-        mode.isAddingShop ? addShopResults : shops
+        if mode == .route { return routeStops }
+        return mode.isAddingShop ? addShopResults : shops
     }
 
     var markerSelectionId: String? {
@@ -62,6 +66,7 @@ final class MapViewModel {
     @ObservationIgnored private var lastFetchKey = ""
     @ObservationIgnored private var autocompleteTask: Task<Void, Never>? = nil
     @ObservationIgnored private var addShopSearchTask: Task<Void, Never>? = nil
+    @ObservationIgnored private var routeTask: Task<Void, Never>? = nil
     @ObservationIgnored private var userCoordinate: Coordinate? = nil
 
     private static let fallbackNiche = "goth"
@@ -95,15 +100,18 @@ final class MapViewModel {
     private let shopsService: ShopsService
     private let placesService: PlacesService
     private let geocodingService: GeocodingService
+    private let routesService: RoutesService
 
     init(
         shopsService: ShopsService = ShopsService(),
         placesService: PlacesService = PlacesService(),
-        geocodingService: GeocodingService = GeocodingService()
+        geocodingService: GeocodingService = GeocodingService(),
+        routesService: RoutesService = RoutesService()
     ) {
         self.shopsService = shopsService
         self.placesService = placesService
         self.geocodingService = geocodingService
+        self.routesService = routesService
     }
 
     static func initialRegion(for niche: String?, userCoordinate: Coordinate?) -> MKCoordinateRegion {
@@ -250,6 +258,63 @@ final class MapViewModel {
 
     func deselectShop() {
         selectedShop = nil
+        restoreBrowseCamera()
+    }
+
+    // A direct route is credited to whoever added the destination shop
+    func startDirectRoute(to shop: ShopDisplay) {
+        routeTask?.cancel()
+        selectedShop = nil
+        routeStops = [shop]
+        activeRoute = nil
+        routeErrorMessage = nil
+        isRouteLoading = true
+        mode = .route
+        routeTask = Task {
+            do {
+                let route = try await routesService.directRoute(
+                    to: shop,
+                    origin: userCoordinate,
+                    createdBy: shop.addedByUsername,
+                    userId: shop.shop.addedByUserId
+                )
+                guard !Task.isCancelled else { return }
+                activeRoute = route
+                isRouteLoading = false
+                fitCameraToRoute()
+            } catch {
+                guard !Task.isCancelled else { return }
+                routeErrorMessage = error.localizedDescription
+                isRouteLoading = false
+            }
+        }
+    }
+
+    func exitRoute() {
+        routeTask?.cancel()
+        activeRoute = nil
+        routeStops = []
+        routeErrorMessage = nil
+        isRouteLoading = false
+        restoreBrowseCamera()
+    }
+
+    private func fitCameraToRoute() {
+        guard let region = Maps.region(
+            enclosing: routePolyline,
+            paddingFactor: Self.fitPaddingFactor,
+            minimumSpan: Self.shopZoomSpan
+        ) else { return }
+        cameraCommand = MapCameraCommand(
+            center: region.center,
+            span: region.span,
+            duration: Self.recenterAnimDuration
+        )
+    }
+
+    // Back to browse mode at the viewport the user last browsed, never
+    // tighter than the default browse zoom
+    private func restoreBrowseCamera() {
         mode = .browse
         guard let region = visibleRegion else { return }
         cameraCommand = MapCameraCommand(

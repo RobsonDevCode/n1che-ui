@@ -7,6 +7,7 @@ struct MapView: View {
     @State private var viewModel = MapViewModel()
     @State private var locationViewModel = LocationViewModel()
     @State private var keyboardHeight: CGFloat = 0
+    @State private var routePanelHeight: CGFloat = 0
     @FocusState private var searchFocused: Bool
 
     private static let headerHPadding: CGFloat = 16
@@ -43,6 +44,8 @@ struct MapView: View {
             let isBrowse = viewModel.mode == .browse
             // Browse and add-shop search fill the slot with map + overlaid nav bar
             let showsNavBar = isBrowse || viewModel.mode == .addShop
+            // Route mode also lets the map fill — RoutePanel hugs its content
+            let mapFills = showsNavBar || viewModel.mode == .route
 
             VStack(spacing: 0) {
                 InkHeaderView { header }
@@ -70,6 +73,7 @@ struct MapView: View {
                                 dimmedMarkerAlpha: viewModel.mode.isAddingShop ? Self.addShopDimmedMarkerAlpha : 0,
                                 routePolyline: viewModel.routePolyline,
                                 previewPolyline: viewModel.previewPolyline,
+                                cameraBottomInset: viewModel.mode == .route ? routePanelHeight : 0,
                                 onSelect: { id in
                                     searchFocused = false
                                     viewModel.markerTapped(id: id)
@@ -78,14 +82,14 @@ struct MapView: View {
                             )
                         }
                     }
-                    // Browse & add-shop search: the map fills the slot and the
-                    // nav bar overlays it. Panel modes: fixed height per mode ratio.
-                    .frame(height: showsNavBar ? nil : mapHeight + Self.mapBleed)
+                    // Map-fill modes: the map fills the slot and the nav bar or
+                    // panel overlays it. Panel modes: fixed height per mode ratio.
+                    .frame(height: mapFills ? nil : mapHeight + Self.mapBleed)
 
                     VStack(spacing: 0) {
                         Color.clear
-                            .frame(height: showsNavBar ? nil : mapHeight)
-                            .frame(maxHeight: showsNavBar ? .infinity : nil)
+                            .frame(height: mapFills ? nil : mapHeight)
+                            .frame(maxHeight: mapFills ? .infinity : nil)
                             .overlay(alignment: .bottomLeading) {
                                 LocationChipView(label: locationViewModel.label)
                                     .padding(Self.chipPadding)
@@ -101,7 +105,7 @@ struct MapView: View {
                             MapNavBarView(items: navBarItems, bottomInset: geo.safeAreaInsets.bottom)
                         } else {
                             panelSlot(bottomInset: geo.safeAreaInsets.bottom)
-                                .frame(maxHeight: .infinity)
+                                .frame(maxHeight: mapFills ? nil : .infinity)
                         }
                     }
 
@@ -197,7 +201,7 @@ struct MapView: View {
                 shop: shop,
                 bottomInset: bottomInset,
                 onBack: { viewModel.deselectShop() },
-                onDirections: { _ in } // TODO: direct route once routing lands
+                onDirections: { viewModel.startDirectRoute(to: $0) }
             )
             .id(shop.id)
         } else if viewModel.mode == .list {
@@ -208,6 +212,16 @@ struct MapView: View {
                 onSelectShop: { viewModel.selectShop(id: $0.id) },
                 onBack: { viewModel.hideList() }
             )
+        } else if viewModel.mode == .route {
+            RoutePanel(
+                route: viewModel.activeRoute,
+                loading: viewModel.isRouteLoading,
+                errorMessage: viewModel.routeErrorMessage,
+                bottomInset: bottomInset,
+                onBegin: {}, // TODO: navigation session (Phase 4)
+                onExit: { viewModel.exitRoute() }
+            )
+            .onGeometryChange(for: CGFloat.self, of: { $0.size.height }) { routePanelHeight = $0 }
         } else if let place = viewModel.selectedPlace, viewModel.mode == .addShopDetail {
             AddShopPanel(
                 place: place,

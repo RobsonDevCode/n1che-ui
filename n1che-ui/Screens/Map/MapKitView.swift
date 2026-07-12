@@ -12,6 +12,8 @@ struct MapKitView: UIViewRepresentable {
     // Full route geometry (active route / navigation) and a lighter builder preview
     var routePolyline: [Coordinate] = []
     var previewPolyline: [Coordinate] = []
+    // Height of a panel overlaying the map bottom — camera fits above it
+    var cameraBottomInset: CGFloat = 0
     let onSelect: (String) -> Void
     let onRegionChange: (MKCoordinateRegion) -> Void
 
@@ -110,8 +112,17 @@ struct MapKitView: UIViewRepresentable {
         func apply(_ command: MapCameraCommand?, to map: MKMapView) {
             guard let command, command.id != lastCameraCommandId else { return }
             lastCameraCommandId = command.id
+            let bottomInset = parent.cameraBottomInset
             UIView.animate(withDuration: command.duration) {
-                map.setRegion(command.region, animated: true)
+                if bottomInset > 0 {
+                    map.setVisibleMapRect(
+                        Maps.mapRect(for: command.region),
+                        edgePadding: UIEdgeInsets(top: 0, left: 0, bottom: bottomInset, right: 0),
+                        animated: true
+                    )
+                } else {
+                    map.setRegion(command.region, animated: true)
+                }
             }
         }
 

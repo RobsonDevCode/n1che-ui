@@ -93,7 +93,7 @@ final class RoutesService {
         guard let googleRoute = response.routes?.first else { throw ProblemDetails.noResults }
 
         return Self.mapToRouteResponse(
-            id: id, googleRoute: googleRoute, stops: stops, mode: mode,
+            id: id, googleRoute: googleRoute, stops: stops, mode: mode, includesOrigin: origin != nil,
             name: name, tag: tag, createdBy: createdBy, userId: userId
         )
     }
@@ -103,6 +103,7 @@ final class RoutesService {
         googleRoute: GoogleRoute,
         stops: [RouteStop],
         mode: RouteMode,
+        includesOrigin: Bool,
         name: String,
         tag: String,
         createdBy: String,
@@ -112,9 +113,11 @@ final class RoutesService {
         let googleLegs = googleRoute.legs ?? []
         switch mode {
         case .you:
-            // Leg i is the segment arriving at stop i.
-            for stopIndex in stopsWithLegs.indices where stopIndex < googleLegs.count {
-                stopsWithLegs[stopIndex].leg = mapRouteLeg(googleLegs[stopIndex])
+            // With an origin, leg i arrives at stop i; without one the route
+            // starts at stop 0, so leg i arrives at stop i + 1.
+            let arrivalOffset = includesOrigin ? 0 : 1
+            for legIndex in googleLegs.indices where legIndex + arrivalOffset < stopsWithLegs.count {
+                stopsWithLegs[legIndex + arrivalOffset].leg = mapRouteLeg(googleLegs[legIndex])
             }
         case .loop:
             // Leg i leaves stop i; attach it to the stop it arrives at.
