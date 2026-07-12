@@ -10,4 +10,16 @@ struct RouteStop: Identifiable, Codable {
     var isOpen: Bool
     var palIdx: Int
     var leg: RouteLeg?
+
+    init(shop: ShopDisplay) {
+        id = shop.id
+        name = shop.name
+        address = shop.address
+        latitude = shop.latitude
+        longitude = shop.longitude
+        voteCount = shop.voteCount
+        isOpen = shop.isOpen
+        palIdx = shop.palIdx
+        leg = nil
+    }
 }

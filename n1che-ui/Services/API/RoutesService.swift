@@ -48,11 +48,7 @@ final class RoutesService {
         createdBy: String,
         userId: String
     ) async throws -> RouteResponse {
-        let stop = RouteStop(
-            id: shop.id, name: shop.name, address: shop.address,
-            latitude: shop.latitude, longitude: shop.longitude,
-            voteCount: shop.voteCount, isOpen: shop.isOpen, palIdx: shop.palIdx, leg: nil
-        )
+        let stop = RouteStop(shop: shop)
         return try await buildRoute(
             id: "direct-\(shop.id)", stops: [stop], origin: origin, mode: .you,
             name: shop.name.uppercased(), tag: "DIRECT", createdBy: createdBy, userId: userId

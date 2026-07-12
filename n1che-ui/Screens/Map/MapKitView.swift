@@ -3,7 +3,9 @@ import SwiftUI
 
 struct MapKitView: UIViewRepresentable {
     let shops: [ShopDisplay]
-    let selectedShopId: String?
+    let selectedShopIds: Set<String>
+    // Markers rendered greyed out — taps still pass through so the app can explain why
+    var disabledShopIds: Set<String> = []
     let cameraCommand: MapCameraCommand?
     let initialRegion: MKCoordinateRegion
     var isInteractive: Bool = true
@@ -24,6 +26,7 @@ struct MapKitView: UIViewRepresentable {
     private static let routeCoreWidth: CGFloat = 5
     private static let previewCasingWidth: CGFloat = 7
     private static let previewCoreWidth: CGFloat = 4
+    private static let disabledMarkerAlpha: CGFloat = 0.3
 
     private enum RouteOverlayLevel: String {
         case routeCasing, routeCore, previewCasing, previewCore
@@ -71,7 +74,7 @@ struct MapKitView: UIViewRepresentable {
         map.isRotateEnabled = isInteractive
         map.isPitchEnabled = isInteractive
         coordinator.syncAnnotations(on: map, shops: shops)
-        coordinator.syncSelection(on: map, selectedId: selectedShopId)
+        coordinator.syncMarkerStates(on: map, selectedIds: selectedShopIds, disabledIds: disabledShopIds)
         coordinator.syncOverlays(on: map, route: routePolyline, preview: previewPolyline)
         coordinator.apply(cameraCommand, to: map)
     }
@@ -80,7 +83,8 @@ struct MapKitView: UIViewRepresentable {
         var parent: MapKitView
 
         private var lastShopIds: [String] = []
-        private var lastSelectedId: String? = nil
+        private var lastSelectedIds: Set<String> = []
+        private var lastDisabledIds: Set<String> = []
         private var lastCameraCommandId: UUID? = nil
         private var lastRoutePolyline: [Coordinate] = []
         private var lastPreviewPolyline: [Coordinate] = []
@@ -99,9 +103,10 @@ struct MapKitView: UIViewRepresentable {
             map.addAnnotations(shops.enumerated().map { ShopAnnotation(shop: $1, index: $0) })
         }
 
-        func syncSelection(on map: MKMapView, selectedId: String?) {
-            guard selectedId != lastSelectedId else { return }
-            lastSelectedId = selectedId
+        func syncMarkerStates(on map: MKMapView, selectedIds: Set<String>, disabledIds: Set<String>) {
+            guard selectedIds != lastSelectedIds || disabledIds != lastDisabledIds else { return }
+            lastSelectedIds = selectedIds
+            lastDisabledIds = disabledIds
             for annotation in map.annotations {
                 guard let shopAnnotation = annotation as? ShopAnnotation,
                       let view = map.view(for: shopAnnotation) as? MarkerAnnotationView else { continue }
@@ -155,13 +160,17 @@ struct MapKitView: UIViewRepresentable {
         }
 
         private func configure(_ view: MarkerAnnotationView, for annotation: ShopAnnotation) {
-            let selected = annotation.shop.id == parent.selectedShopId
-            let dimmed = parent.selectedShopId != nil && !selected
+            let selected = parent.selectedShopIds.contains(annotation.shop.id)
+            let dimmed = !parent.selectedShopIds.isEmpty && !selected
+            let disabled = parent.disabledShopIds.contains(annotation.shop.id)
+            let alpha = disabled
+                ? MapKitView.disabledMarkerAlpha
+                : (dimmed ? parent.dimmedMarkerAlpha : 1)
             view.configure(MarkerViewState(
                 shop: annotation.shop,
                 index: annotation.index,
                 selected: selected,
-                alpha: dimmed ? parent.dimmedMarkerAlpha : 1
+                alpha: alpha
             ))
         }
 

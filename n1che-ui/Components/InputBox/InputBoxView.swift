@@ -13,6 +13,7 @@ struct InputBoxView: View {
 
     let label: String
     @Binding var value: String
+    var labelColor: Color = .inkCol
     var placeholder: String = ""
     var isSecure: Bool = false
     var keyboard: UIKeyboardType = .default
@@ -29,7 +30,7 @@ struct InputBoxView: View {
             Text(label.uppercased())
                 .font(.mono(Self.labelSize))
                 .kerning(Self.labelKerning)
-                .foregroundStyle(Color.inkCol)
+                .foregroundStyle(labelColor)
 
             Group {
                 if isSecure {

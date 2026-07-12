@@ -21,8 +21,8 @@ enum MapMode {
 
     var showsSearchBar: Bool {
         switch self {
-        case .browse, .shop, .list, .addShop, .addShopDetail:  true
-        case .routePicker, .routeBuilder, .route, .navigation: false
+        case .browse, .shop, .list, .addShop, .addShopDetail, .routeBuilder: true
+        case .routePicker, .route, .navigation:                              false
         }
     }
 

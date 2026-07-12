@@ -25,6 +25,13 @@ struct MapView: View {
     private static let keyboardMapOverlap: CGFloat = 80
     // Unselected search-result pins fade back but stay visible while adding a shop
     private static let addShopDimmedMarkerAlpha: CGFloat = 0.3
+    // Building a route needs every marker tappable, so none fade
+    private static let builderMarkerAlpha: CGFloat = 1
+
+    private var dimmedMarkerAlpha: CGFloat {
+        if viewModel.mode == .routeBuilder { return Self.builderMarkerAlpha }
+        return viewModel.mode.isAddingShop ? Self.addShopDimmedMarkerAlpha : 0
+    }
 
     private var nicheLabel: String {
         Niche.all.first { $0.id == nicheStore.selectedNiche }?.label
@@ -44,8 +51,8 @@ struct MapView: View {
             let isBrowse = viewModel.mode == .browse
             // Browse and add-shop search fill the slot with map + overlaid nav bar
             let showsNavBar = isBrowse || viewModel.mode == .addShop
-            // Route mode also lets the map fill — RoutePanel hugs its content
-            let mapFills = showsNavBar || viewModel.mode == .route
+            // Route and builder modes also let the map fill — their panels hug content
+            let mapFills = showsNavBar || viewModel.mode == .route || viewModel.mode == .routeBuilder
 
             VStack(spacing: 0) {
                 InkHeaderView { header }
@@ -63,14 +70,15 @@ struct MapView: View {
                         } else {
                             MapKitView(
                                 shops: viewModel.markers,
-                                selectedShopId: viewModel.markerSelectionId,
+                                selectedShopIds: viewModel.markerSelectionIds,
+                                disabledShopIds: viewModel.outOfRangeShopIds,
                                 cameraCommand: viewModel.cameraCommand,
                                 initialRegion: MapViewModel.initialRegion(
                                     for: nicheStore.selectedNiche,
                                     userCoordinate: locationViewModel.coordinate
                                 ),
                                 isInteractive: viewModel.mode != .shop,
-                                dimmedMarkerAlpha: viewModel.mode.isAddingShop ? Self.addShopDimmedMarkerAlpha : 0,
+                                dimmedMarkerAlpha: dimmedMarkerAlpha,
                                 routePolyline: viewModel.routePolyline,
                                 previewPolyline: viewModel.previewPolyline,
                                 cameraBottomInset: viewModel.mode == .route ? routePanelHeight : 0,
@@ -111,6 +119,10 @@ struct MapView: View {
 
                     if viewModel.showsDropdown {
                         searchDropdown
+                    }
+
+                    if let rangeMessage = viewModel.builderRangeMessage {
+                        TooltipView(text: rangeMessage)
                     }
                 }
                 .frame(maxHeight: .infinity, alignment: .top)
@@ -167,7 +179,7 @@ struct MapView: View {
             onSelectShop: { shop in
                 searchFocused = false
                 viewModel.clearSearch()
-                viewModel.selectShop(id: shop.id)
+                viewModel.markerTapped(id: shop.id)
             },
             onSelectPlace: { place in
                 searchFocused = false
@@ -178,13 +190,21 @@ struct MapView: View {
 
     private var header: some View {
         let addingShop = viewModel.mode.isAddingShop
+        let buildingRoute = viewModel.mode == .routeBuilder
+        let backAction: () -> Void = if addingShop {
+            { viewModel.exitAddShop() }
+        } else if buildingRoute {
+            { viewModel.exitRouteBuilder() }
+        } else {
+            coordinator.pop
+        }
         return HStack(spacing: Self.headerGap) {
-            Button(action: addingShop ? { viewModel.exitAddShop() } : coordinator.pop) {
+            Button(action: backAction) {
                 IconView(icon: .arrowLeft, size: Self.backIconSize, color: .white.opacity(Self.backIconOpacity))
             }
-            HeaderTitleView(text: addingShop ? "ADD SHOP" : "NICHE", size: Self.titleFontSize)
+            HeaderTitleView(text: headerTitle, size: Self.titleFontSize)
             Spacer()
-            if !addingShop {
+            if !addingShop && !buildingRoute {
                 NicheChipView(label: nicheLabel) {
                     coordinator.replaceTop(.nichePicker)
                 }
@@ -192,6 +212,11 @@ struct MapView: View {
         }
         .padding(.horizontal, Self.headerHPadding)
         .padding(.vertical, Self.headerVPadding)
+    }
+
+    private var headerTitle: String {
+        if viewModel.mode.isAddingShop { return "ADD SHOP" }
+        return viewModel.mode == .routeBuilder ? "NEW ROUTE" : "NICHE"
     }
 
     @ViewBuilder
@@ -211,6 +236,16 @@ struct MapView: View {
                 bottomInset: bottomInset,
                 onSelectShop: { viewModel.selectShop(id: $0.id) },
                 onBack: { viewModel.hideList() }
+            )
+        } else if viewModel.mode == .routeBuilder {
+            RouteBuilderPanel(
+                routeName: $viewModel.builderRouteName,
+                stops: viewModel.builderStops,
+                previewRoute: viewModel.builderPreviewRoute,
+                previewLoading: viewModel.isBuilderPreviewLoading,
+                bottomInset: bottomInset,
+                onRemoveStop: { viewModel.removeBuilderStop(id: $0) },
+                onSave: {} // TODO: compute + start the built route (3e)
             )
         } else if viewModel.mode == .route {
             RoutePanel(
@@ -244,7 +279,7 @@ struct MapView: View {
         return [
             MapNavBarItem(id: "list", icon: .list, action: { viewModel.showList() }),
             MapNavBarItem(id: "addShop", icon: .plus, action: { viewModel.enterAddShop() }),
-            MapNavBarItem(id: "route", icon: .route, action: {}), // TODO: route picker
+            MapNavBarItem(id: "route", icon: .route, action: { viewModel.enterRouteBuilder() }),
         ]
     }
 }

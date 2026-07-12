@@ -15,17 +15,11 @@ struct RoutePanel: View {
     private static let titleRowGap: CGFloat = 15
     private static let subtitleGap: CGFloat = 3
     private static let subtitleOpacity: Double = 0.55
-    private static let exitIconSize: CGFloat = 16
-    private static let statusVPadding: CGFloat = 32
     private static let statusOpacity: Double = 0.5
     private static let etaFontSize: CGFloat = 60
     private static let etaKerning: CGFloat = -1
     private static let etaBlockGap: CGFloat = 20
     private static let etaBottomGap: CGFloat = 28
-    private static let statColumnGap: CGFloat = 22
-    private static let statLabelGap: CGFloat = 5
-    private static let statLabelFontSize: CGFloat = 10
-    private static let statValueFontSize: CGFloat = 22
     private static let statBottomPadding: CGFloat = 6
 
     private var subtitle: String {
@@ -34,7 +28,7 @@ struct RoutePanel: View {
     }
 
     var body: some View {
-        PanelView(variant: .ink) {
+        PanelView(variant: .ink, isDraggable: true) {
             VStack(alignment: .leading, spacing: 0) {
                 titleRow
                     .padding(.bottom, Self.titleRowGap)
@@ -43,10 +37,10 @@ struct RoutePanel: View {
                         .tint(.paper)
                         .controlSize(.large)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, Self.statusVPadding)
+                        .padding(.vertical, Spacing.xl)
                 } else if let errorMessage {
                     SubtitleView(text: errorMessage, color: .paper.opacity(Self.statusOpacity))
-                        .padding(.vertical, Self.statusVPadding)
+                        .padding(.vertical, Spacing.xl)
                 } else if let route {
                     etaBlock(for: route)
                         .padding(.bottom, Self.etaBottomGap)
@@ -74,7 +68,7 @@ struct RoutePanel: View {
             }
             Spacer()
             NicheButton(variant: .icon, action: onExit) {
-                IconView(icon: .arrowLeft, size: Self.exitIconSize)
+                IconView(icon: .arrowLeft, size: IconSize.md)
             }
         }
     }
@@ -87,21 +81,15 @@ struct RoutePanel: View {
                 color: .paper,
                 kerning: Self.etaKerning
             )
-            HStack(spacing: Self.statColumnGap) {
+            HStack(spacing: Spacing.lg) {
                 if route.stops.count > 1 {
-                    statColumn(label: "STOPS", value: "\(route.stops.count)")
+                    RouteStatColumnView(stat: .stops, value: "\(route.stops.count)")
                 }
-                statColumn(label: "DIST", value: StringUtils.formatRouteDistance(meters: route.distanceMeters))
-                statColumn(label: "UPVOTES", value: "↑\(route.totalUpvotes)")
+                RouteStatColumnView(stat: .dist, value: StringUtils.formatRouteDistance(meters: route.distanceMeters))
+                RouteStatColumnView(stat: .upvotes, value: "↑\(route.totalUpvotes)")
             }
             .padding(.bottom, Self.statBottomPadding)
         }
     }
 
-    private func statColumn(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: Self.statLabelGap) {
-            SubtitleView(text: label, size: Self.statLabelFontSize, color: .paper.opacity(Self.statusOpacity))
-            TitleView(text: value, size: Self.statValueFontSize, color: .paper)
-        }
-    }
 }
